@@ -5,19 +5,6 @@ const {
   GraphQLSchema, GraphQLObjectType, introspectionQuery
 } = require('graphql');
 
-const EMPTY_OBJECT = {
-  title: "Empty",
-  type: "object",
-  properties: { }
-};
-
-const SIMPLE_OBJECT = {
-  title: "Simple",
-  type: "object",
-  properties: { 
-    attribute: "string"
-  }
-};
 
 function cannonicalize (introspectionResult) {
   introspectionResult.data.__schema.directives.sort(function (a, b) {
@@ -61,17 +48,43 @@ async function testConversion (test, jsonSchema, expectedTypeName, expectedType)
 }
 
 test('empty object', async function (test) {
+  const emptyType = {
+    title: "Empty",
+    type: "object",
+    properties: { }
+  };
+
   const expectedType = `type Empty {
     _typesWithoutFieldsAreNotAllowed_: String
   }`;
 
-  await testConversion(test, EMPTY_OBJECT, 'Empty', expectedType);
+  await testConversion(test, emptyType, 'Empty', expectedType);
 });
 
-test('simple object', async function (test) {
+async function testAttrbuteType (test, jsonType, graphQLType) {
+  const simpleType = {
+    title: "Simple",
+    type: "object",
+    properties: { 
+      attribute: jsonType
+    }
+  };
+
   const expectedType = `type Simple {
-    attribute: String
+    attribute: ${graphQLType}
   }`;
 
-  await testConversion(test, SIMPLE_OBJECT, 'Simple', expectedType);
+  await testConversion(test, simpleType, 'Simple', expectedType);
+}
+
+test('string attributes', async function (test) {
+  await testAttrbuteType(test, 'string', 'String');
+});
+
+test('integer attributes', async function (test) {
+  await testAttrbuteType(test, 'integer', 'Int');
+});
+
+test('float attributes', async function (test) {
+  await testAttrbuteType(test, 'number', 'Float');
 });
