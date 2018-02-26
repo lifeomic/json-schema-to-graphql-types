@@ -27,7 +27,7 @@ function fieldsFromSchema (schema) {
 
 function convert (schema) {
   return new GraphQLObjectType({
-    name: schema.title,
+    name: schema.id || schema.title,
     fields: fieldsFromSchema(schema)
   });
 }

@@ -1,4 +1,5 @@
 const {test} = require('ava');
+const Ajv = require('ajv');
 const convert = require('../src/convert');
 const {
   parse, execute, buildSchema,
@@ -13,6 +14,9 @@ function cannonicalize (introspectionResult) {
 }
 
 async function testConversion (test, jsonSchema, expectedTypeName, expectedType) {
+  const ajv = new Ajv();
+  ajv.addSchema(jsonSchema);
+
   const convertedType = convert(jsonSchema);
   const queryType = new GraphQLObjectType({
     name: 'Query',
@@ -47,7 +51,7 @@ async function testConversion (test, jsonSchema, expectedTypeName, expectedType)
 
 test('empty object', async function (test) {
   const emptyType = {
-    title: 'Empty',
+    id: 'Empty',
     type: 'object',
     properties: { }
   };
@@ -61,7 +65,7 @@ test('empty object', async function (test) {
 
 async function testAttrbuteType (test, jsonType, graphQLType) {
   const simpleType = {
-    title: 'Simple',
+    id: 'Simple',
     type: 'object',
     properties: {
       attribute: {type: jsonType}
