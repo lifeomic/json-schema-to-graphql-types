@@ -8,7 +8,7 @@ function mapAttributeType (type) {
     case 'integer': return GraphQLInt;
     case 'number': return GraphQLFloat;
     default: throw new Error(`A JSON Schema attribute type ${type} does not have a known GraphQL mapping`);
-  };
+  }
 }
 
 function fieldsFromSchema (schema) {
@@ -17,7 +17,7 @@ function fieldsFromSchema (schema) {
       _typesWithoutFieldsAreNotAllowed_: {
         type: GraphQLString
       }
-    }; 
+    };
   }
 
   return mapValues(schema.properties, function (type, key) {

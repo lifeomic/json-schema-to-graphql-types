@@ -1,10 +1,9 @@
 const {test} = require('ava');
 const convert = require('../src/convert');
 const {
-  parse, validate, execute, buildSchema, typeFromAST,
+  parse, execute, buildSchema,
   GraphQLSchema, GraphQLObjectType, introspectionQuery
 } = require('graphql');
-
 
 function cannonicalize (introspectionResult) {
   introspectionResult.data.__schema.directives.sort(function (a, b) {
@@ -42,15 +41,14 @@ async function testConversion (test, jsonSchema, expectedTypeName, expectedType)
     schema: exepectedSchema,
     document: parse(introspectionQuery)
   });
-  
-  test.deepEqual(cannonicalize(introspection), cannonicalize(expectedIntrospection));
 
+  test.deepEqual(cannonicalize(introspection), cannonicalize(expectedIntrospection));
 }
 
 test('empty object', async function (test) {
   const emptyType = {
-    title: "Empty",
-    type: "object",
+    title: 'Empty',
+    type: 'object',
     properties: { }
   };
 
@@ -63,9 +61,9 @@ test('empty object', async function (test) {
 
 async function testAttrbuteType (test, jsonType, graphQLType) {
   const simpleType = {
-    title: "Simple",
-    type: "object",
-    properties: { 
+    title: 'Simple',
+    type: 'object',
+    properties: {
       attribute: jsonType
     }
   };
