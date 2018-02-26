@@ -64,7 +64,7 @@ async function testAttrbuteType (test, jsonType, graphQLType) {
     title: 'Simple',
     type: 'object',
     properties: {
-      attribute: jsonType
+      attribute: {type: jsonType}
     }
   };
 

@@ -20,8 +20,8 @@ function fieldsFromSchema (schema) {
     };
   }
 
-  return mapValues(schema.properties, function (type, key) {
-    return {type: mapAttributeType(type)};
+  return mapValues(schema.properties, function (attributeDefinition, key) {
+    return {type: mapAttributeType(attributeDefinition.type)};
   });
 }
 
