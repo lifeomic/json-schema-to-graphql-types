@@ -1,10 +1,12 @@
 const {test} = require('ava');
 const Ajv = require('ajv');
-const {newContext, convert, UnknownTypeReference} = require('../src/converter');
+const {newContext, convert, UnknownTypeReference, getConvertEnumFromGraphQLCode} = require('../src/converter');
 const {
-  parse, execute, buildSchema,
+  parse, execute, buildSchema, printSchema,
   GraphQLSchema, GraphQLObjectType, introspectionQuery
 } = require('graphql');
+const tmp = require('tmp-promise');
+const fs = require('fs-extra');
 
 function cannonicalize (introspectionResult) {
   introspectionResult.data.__schema.directives.sort(function (a, b) {
@@ -13,22 +15,24 @@ function cannonicalize (introspectionResult) {
   return introspectionResult;
 }
 
+function makeSchemaForType (type) {
+  const queryType = new GraphQLObjectType({
+    name: 'Query',
+    fields: {
+      findOne: { type }
+    }
+  });
+
+  return new GraphQLSchema({query: queryType});
+}
+
 async function testConversion (test, jsonSchema, expectedTypeName, expectedType, context) {
   const ajv = new Ajv();
   ajv.addSchema(jsonSchema);
 
   context = context || newContext();
   const convertedType = convert(context, jsonSchema);
-  const queryType = new GraphQLObjectType({
-    name: 'Query',
-    fields: {
-      findOne: {
-        type: convertedType
-      }
-    }
-  });
-
-  const schema = new GraphQLSchema({query: queryType});
+  const schema = makeSchemaForType(convertedType);
 
   const exepectedSchema = buildSchema(`
     ${expectedType}
@@ -314,4 +318,33 @@ test('Enumeration attribute with numberic keys', async function (test) {
 
   const context = newContext();
   await testConversion(test, personType, 'Person', expectedType, context);
+});
+
+test('Enumeration conversion function', async function (test) {
+  const personType = {
+    id: 'Person',
+    type: 'object',
+    properties: {
+      age: {
+        type: 'string',
+        enum: ['1', '10', '100']
+      }
+    }
+  };
+
+  const context = newContext();
+  const type = convert(context, personType);
+  // Make a schema an print it just to force the field 'thunks'
+  // to be resolved
+  const schema = makeSchemaForType(type);
+  printSchema(schema);
+
+  const convertCode = getConvertEnumFromGraphQLCode(context, 'Person.age');
+
+  const convertModule = await tmp.file();
+  await fs.writeFile(convertModule.fd, `module.exports = ${convertCode}`);
+  const fromGraphQl = require(convertModule.path);
+  test.is(fromGraphQl('VALUE_1'), '1');
+  test.is(fromGraphQl('VALUE_10'), '10');
+  test.is(fromGraphQl('VALUE_100'), '100');
 });

@@ -11,7 +11,6 @@ function convertSchemas (context, schemas) {
   let successful = 0;
   for (const schema of schemas) {
     try {
-      console.log('Converting', schema.id);
       convert(context, schema);
       successful++;
     } catch (error) {
@@ -35,7 +34,7 @@ function convertSchemas (context, schemas) {
   }
 }
 
-async function convertDir (dir) {
+async function convertDir (dir, asJs) {
   const files = await fs.readdir(dir);
   const schemas = [];
 
@@ -51,7 +50,7 @@ async function convertDir (dir) {
     name: 'Query',
     fields: () => {
       const result = {};
-      for (const [name, type] of Object.entries(context.types)) {
+      for (const [name, type] of context.types.entries()) {
         result[name] = {type};
       }
       return result;
@@ -62,12 +61,21 @@ async function convertDir (dir) {
 
   // Strip out the Query type because it's not needed
   const withoutQuery = printed.replace(/^type Query {[^}]*}/m, '');
-  console.log(withoutQuery);
+
+  if (asJs) {
+    console.log(`module.exports = \`\n${withoutQuery}\``);
+  } else {
+    console.log(withoutQuery);
+  }
 }
 
 async function run () {
-  const dir = yargs.argv._[0];
-  await convertDir(dir);
+  const argv = yargs
+    .boolean('asJs')
+    .argv;
+
+  const dir = argv._[0];
+  await convertDir(dir, argv.asJs);
 }
 
 run()

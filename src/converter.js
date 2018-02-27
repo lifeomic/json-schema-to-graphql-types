@@ -1,11 +1,14 @@
 const {
-  GraphQLObjectType, GraphQLString, GraphQLInt,
+  GraphQLObjectType, GraphQLString, GraphQLInt, GraphQLNonNull,
   GraphQLFloat, GraphQLList, GraphQLBoolean, GraphQLEnumType
 } = require('graphql');
 const isEmpty = require('lodash/isEmpty');
 const keyBy = require('lodash/keyBy');
 const mapValues = require('lodash/mapValues');
+const map = require('lodash/map');
 const uppercamelcase = require('uppercamelcase');
+const camelcase = require('camelcase');
+const escodegen = require('escodegen');
 
 function mapBasicAttributeType (type, attributeName) {
   switch (type) {
@@ -24,11 +27,14 @@ function toSafeEnumKey (value) {
   return value.replace(/[^_a-zA-Z0-9]/g, '_');
 }
 
-function buildEnumType (attributeName, enumValues) {
+function buildEnumType (context, attributeName, enumValues) {
   const enumName = uppercamelcase(attributeName);
+  const graphqlToJsonMap = keyBy(enumValues, toSafeEnumKey);
+
+  context.enumMaps.set(attributeName, graphqlToJsonMap);
   return new GraphQLEnumType({
     name: enumName,
-    values: mapValues(keyBy(enumValues, toSafeEnumKey), function (value) {
+    values: mapValues(graphqlToJsonMap, function (value) {
       return {value};
     })
   });
@@ -46,12 +52,12 @@ function mapType (context, attributeDefinition, attributeName) {
       throw new Error(`The attribute ${attributeName} not supported because only conversion of string based enumertions are implemented`);
     }
 
-    return buildEnumType(attributeName, enumValues);
+    return buildEnumType(context, attributeName, enumValues);
   }
 
   const typeReference = attributeDefinition.$ref;
   if (typeReference) {
-    const referencedType = context.types[typeReference];
+    const referencedType = context.types.get(typeReference);
     if (!referencedType) {
       throw new UnknownTypeReference(`The referenced type ${typeReference} is unknown`);
     }
@@ -84,7 +90,7 @@ function convert (context, schema) {
   });
 
   if (schema.id) {
-    context.types[schema.id] = graphQlType;
+    context.types.set(typeName, graphQlType);
   }
 
   return graphQlType;
@@ -92,7 +98,8 @@ function convert (context, schema) {
 
 function newContext () {
   return {
-    types: []
+    types: new Map(),
+    enumMaps: new Map()
   };
 }
 
@@ -103,8 +110,41 @@ class UnknownTypeReference extends Error {
   }
 }
 
+function getConvertEnumFromGraphQLCode (context, attributePath) {
+  const valueMap = context.enumMaps.get(attributePath);
+
+  const cases = map(valueMap, function (jsonValue, graphQlValue) {
+    return {
+      type: 'SwitchCase',
+      test: {type: 'Literal', value: graphQlValue},
+      consequent: [{
+        type: 'ReturnStatement',
+        argument: {type: 'Literal', value: jsonValue}
+      }]
+    };
+  });
+
+  const functionName = camelcase(`convert${attributePath}FromGraphQL`);
+
+  const valueIdentifier = { type: 'Identifier', name: 'value' };
+  return escodegen.generate({
+    type: 'FunctionDeclaration',
+    id: { type: 'Identifier', name: functionName },
+    params: [ valueIdentifier ],
+    body: {
+      type: 'BlockStatement',
+      body: [ {
+        type: 'SwitchStatement',
+        discriminant: valueIdentifier,
+        cases
+      }]
+    }
+  });
+}
+
 module.exports = {
   UnknownTypeReference,
   newContext,
-  convert
+  convert,
+  getConvertEnumFromGraphQLCode
 };
