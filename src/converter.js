@@ -1,9 +1,12 @@
 const {
   GraphQLObjectType, GraphQLString, GraphQLInt,
-  GraphQLFloat, GraphQLList, GraphQLBoolean
+  GraphQLFloat, GraphQLList, GraphQLBoolean, GraphQLEnumType
 } = require('graphql');
 const isEmpty = require('lodash/isEmpty');
+const keyBy = require('lodash/keyBy');
+const toUpper = require('lodash/toUpper');
 const mapValues = require('lodash/mapValues');
+const uppercamelcase = require('uppercamelcase');
 
 function mapBasicAttributeType (type, attributeName) {
   switch (type) {
@@ -15,10 +18,29 @@ function mapBasicAttributeType (type, attributeName) {
   }
 }
 
+function buildEnumType (attributeName, enumValues) {
+  const enumName = uppercamelcase(attributeName);
+  return new GraphQLEnumType({
+    name: enumName,
+    values: mapValues(keyBy(enumValues, toUpper), function (value) {
+      return {value};
+    })
+  });
+}
+
 function mapType (context, attributeDefinition, attributeName) {
   if (attributeDefinition.type === 'array') {
     const elementType = mapType(context, attributeDefinition.items, attributeName);
     return GraphQLList(elementType);
+  }
+
+  const enumValues = attributeDefinition.enum;
+  if (enumValues) {
+    if (attributeDefinition.type !== 'string') {
+      throw new Error(`The attribute ${attributeName} not supported because only conversion of string based enumertions are implemented`);
+    }
+
+    return buildEnumType(attributeName, enumValues);
   }
 
   const typeReference = attributeDefinition.$ref;
@@ -33,7 +55,7 @@ function mapType (context, attributeDefinition, attributeName) {
   return mapBasicAttributeType(attributeDefinition.type, attributeName);
 }
 
-function fieldsFromSchema (context, schema) {
+function fieldsFromSchema (context, parentTypeName, schema) {
   if (isEmpty(schema.properties)) {
     return {
       _typesWithoutFieldsAreNotAllowed_: {
@@ -43,14 +65,16 @@ function fieldsFromSchema (context, schema) {
   }
 
   return mapValues(schema.properties, function (attributeDefinition, attributeName) {
-    return {type: mapType(context, attributeDefinition, attributeName)};
+    const qualifiedAttributeName = `${parentTypeName}.${attributeName}`;
+    return {type: mapType(context, attributeDefinition, qualifiedAttributeName)};
   });
 }
 
 function convert (context, schema) {
+  const typeName = schema.id || schema.title;
   const graphQlType = new GraphQLObjectType({
-    name: schema.id || schema.title,
-    fields: () => fieldsFromSchema(context, schema)
+    name: typeName,
+    fields: () => fieldsFromSchema(context, typeName, schema)
   });
 
   if (schema.id) {

@@ -243,3 +243,27 @@ test('Circular $ref attribute types', async function (test) {
   convert(context, rightType);
   await testConversion(test, leftType, 'Left', expectedType, context);
 });
+
+test('Enumeration attribute types', async function (test) {
+  const personType = {
+    id: 'Person',
+    type: 'object',
+    properties: {
+      height: {
+        type: 'string',
+        enum: ['tall', 'average', 'short']
+      }
+    }
+  };
+
+  const expectedType = `
+  enum PersonHeight {
+    TALL, AVERAGE, SHORT
+  }
+  type Person {
+    height: PersonHeight
+  }`;
+
+  const context = newContext();
+  await testConversion(test, personType, 'Person', expectedType, context);
+});

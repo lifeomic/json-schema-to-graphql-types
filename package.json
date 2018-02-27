@@ -12,7 +12,8 @@
   "license": "MIT",
   "dependencies": {
     "graphql": "^0.13.0",
-    "lodash": "^4.17.5"
+    "lodash": "^4.17.5",
+    "uppercamelcase": "^3.0.0"
   },
   "devDependencies": {
     "ajv": "^6.2.0",
