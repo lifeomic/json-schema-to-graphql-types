@@ -267,3 +267,27 @@ test('Enumeration attribute types', async function (test) {
   const context = newContext();
   await testConversion(test, personType, 'Person', expectedType, context);
 });
+
+test('Enumeration attribute with forbidden characters', async function (test) {
+  const personType = {
+    id: 'Person',
+    type: 'object',
+    properties: {
+      height: {
+        type: 'string',
+        enum: ['super-tall', 'average', 'really-really-short']
+      }
+    }
+  };
+
+  const expectedType = `
+  enum PersonHeight {
+    SUPER_TALL, AVERAGE, REALLY_REALLY_SHORT
+  }
+  type Person {
+    height: PersonHeight
+  }`;
+
+  const context = newContext();
+  await testConversion(test, personType, 'Person', expectedType, context);
+});

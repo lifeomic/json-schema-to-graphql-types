@@ -18,11 +18,15 @@ function mapBasicAttributeType (type, attributeName) {
   }
 }
 
+function toSafeEnumKey (value) {
+  return toUpper(value).replace(/[^_a-zA-Z0-9]/g, '_');
+}
+
 function buildEnumType (attributeName, enumValues) {
   const enumName = uppercamelcase(attributeName);
   return new GraphQLEnumType({
     name: enumName,
-    values: mapValues(keyBy(enumValues, toUpper), function (value) {
+    values: mapValues(keyBy(enumValues, toSafeEnumKey), function (value) {
       return {value};
     })
   });
