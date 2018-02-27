@@ -11,6 +11,24 @@ function mapBasicAttributeType (type, attributeName) {
   }
 }
 
+function mapType (context, attributeDefinition, attributeName) {
+  if (attributeDefinition.type === 'array') {
+    const elementType = mapType(context, attributeDefinition.items, attributeName);
+    return GraphQLList(elementType);
+  }
+
+  const typeReference = attributeDefinition.$ref;
+  if (typeReference) {
+    const referencedType = context.types[typeReference];
+    if (!referencedType) {
+      throw new UnknownTypeReference(`The referenced type ${typeReference} is unknown`);
+    }
+    return referencedType;
+  }
+
+  return mapBasicAttributeType(attributeDefinition.type, attributeName);
+}
+
 function fieldsFromSchema (context, schema) {
   if (isEmpty(schema.properties)) {
     return {
@@ -20,24 +38,8 @@ function fieldsFromSchema (context, schema) {
     };
   }
 
-  return mapValues(schema.properties, function (attributeDefinition, key) {
-    if (attributeDefinition.type === 'array') {
-      const elementType = mapBasicAttributeType(attributeDefinition.items.type, key);
-      return {
-        type: GraphQLList(elementType)
-      };
-    }
-
-    const typeReference = attributeDefinition.$ref;
-    if (typeReference) {
-      const referencedType = context.types[typeReference];
-      if (!referencedType) {
-        throw new UnknownTypeReference(`The referenced type ${typeReference} is unknown`);
-      }
-      return {type: referencedType};
-    }
-
-    return {type: mapBasicAttributeType(attributeDefinition.type, key)};
+  return mapValues(schema.properties, function (attributeDefinition, attributeName) {
+    return {type: mapType(context, attributeDefinition, attributeName)};
   });
 }
 

@@ -166,3 +166,41 @@ test('Known $ref attribute type', async function (test) {
   convert(context, otherType);
   await testConversion(test, refType, 'Ref', expectedType, context);
 });
+
+test('Known $ref array attribute type', async function (test) {
+  const otherType = {
+    id: 'OtherType',
+    type: 'object',
+    properties: {
+      attribute: {
+        type: 'string'
+      }
+    }
+  };
+
+  const refType = {
+    id: 'Ref',
+    type: 'object',
+    properties: {
+      attribute: {
+        type: 'array',
+        items: {
+          $ref: 'OtherType'
+        }
+      }
+    }
+  };
+
+  const expectedType = `
+  type OtherType {
+    attribute: String
+  }
+
+  type Ref {
+    attribute: [OtherType]
+  }`;
+
+  const context = newContext();
+  convert(context, otherType);
+  await testConversion(test, refType, 'Ref', expectedType, context);
+});
