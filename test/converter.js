@@ -208,3 +208,38 @@ test('Known $ref array attribute type', async function (test) {
   convert(context, otherType);
   await testConversion(test, refType, 'Ref', expectedType, context);
 });
+
+test('Circular $ref attribute types', async function (test) {
+  const leftType = {
+    id: 'Left',
+    type: 'object',
+    properties: {
+      right: {
+        $ref: 'Right'
+      }
+    }
+  };
+
+  const rightType = {
+    id: 'Right',
+    type: 'object',
+    properties: {
+      left: {
+        $ref: 'Left'
+      }
+    }
+  };
+
+  const expectedType = `
+  type Right {
+    left: Left
+  }
+
+  type Left {
+    right: Right
+  }`;
+
+  const context = newContext();
+  convert(context, rightType);
+  await testConversion(test, leftType, 'Left', expectedType, context);
+});

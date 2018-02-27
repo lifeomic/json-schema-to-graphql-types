@@ -50,7 +50,7 @@ function fieldsFromSchema (context, schema) {
 function convert (context, schema) {
   const graphQlType = new GraphQLObjectType({
     name: schema.id || schema.title,
-    fields: fieldsFromSchema(context, schema)
+    fields: () => fieldsFromSchema(context, schema)
   });
 
   if (schema.id) {
