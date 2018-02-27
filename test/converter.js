@@ -92,6 +92,10 @@ test('float attributes', async function (test) {
   await testAttrbuteType(test, 'number', 'Float');
 });
 
+test('boolean attributes', async function (test) {
+  await testAttrbuteType(test, 'boolean', 'Boolean');
+});
+
 test('array attributes', async function (test) {
   const simpleType = {
     id: 'Array',

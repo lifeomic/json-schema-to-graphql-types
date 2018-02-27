@@ -1,4 +1,7 @@
-const {GraphQLObjectType, GraphQLString, GraphQLInt, GraphQLFloat, GraphQLList} = require('graphql');
+const {
+  GraphQLObjectType, GraphQLString, GraphQLInt,
+  GraphQLFloat, GraphQLList, GraphQLBoolean
+} = require('graphql');
 const isEmpty = require('lodash/isEmpty');
 const mapValues = require('lodash/mapValues');
 
@@ -7,6 +10,7 @@ function mapBasicAttributeType (type, attributeName) {
     case 'string': return GraphQLString;
     case 'integer': return GraphQLInt;
     case 'number': return GraphQLFloat;
+    case 'boolean': return GraphQLBoolean;
     default: throw new Error(`A JSON Schema attribute type ${type} on attribute ${attributeName} does not have a known GraphQL mapping`);
   }
 }
