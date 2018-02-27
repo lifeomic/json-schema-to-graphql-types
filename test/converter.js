@@ -258,7 +258,7 @@ test('Enumeration attribute types', async function (test) {
 
   const expectedType = `
   enum PersonHeight {
-    TALL, AVERAGE, SHORT
+    tall, average, short
   }
   type Person {
     height: PersonHeight
@@ -282,7 +282,7 @@ test('Enumeration attribute with forbidden characters', async function (test) {
 
   const expectedType = `
   enum PersonHeight {
-    SUPER_TALL, AVERAGE, REALLY_REALLY_SHORT
+    super_tall, average, really_really_short
   }
   type Person {
     height: PersonHeight

@@ -4,7 +4,6 @@ const {
 } = require('graphql');
 const isEmpty = require('lodash/isEmpty');
 const keyBy = require('lodash/keyBy');
-const toUpper = require('lodash/toUpper');
 const mapValues = require('lodash/mapValues');
 const uppercamelcase = require('uppercamelcase');
 
@@ -22,7 +21,7 @@ function toSafeEnumKey (value) {
   if (/^[0-9]/.test(value)) {
     value = 'VALUE_' + value;
   }
-  return toUpper(value).replace(/[^_a-zA-Z0-9]/g, '_');
+  return value.replace(/[^_a-zA-Z0-9]/g, '_');
 }
 
 function buildEnumType (attributeName, enumValues) {
