@@ -291,3 +291,27 @@ test('Enumeration attribute with forbidden characters', async function (test) {
   const context = newContext();
   await testConversion(test, personType, 'Person', expectedType, context);
 });
+
+test('Enumeration attribute with numberic keys', async function (test) {
+  const personType = {
+    id: 'Person',
+    type: 'object',
+    properties: {
+      age: {
+        type: 'string',
+        enum: ['1', '10', '100']
+      }
+    }
+  };
+
+  const expectedType = `
+  enum PersonAge {
+    VALUE_1, VALUE_10, VALUE_100
+  }
+  type Person {
+    age: PersonAge
+  }`;
+
+  const context = newContext();
+  await testConversion(test, personType, 'Person', expectedType, context);
+});

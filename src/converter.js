@@ -19,6 +19,9 @@ function mapBasicAttributeType (type, attributeName) {
 }
 
 function toSafeEnumKey (value) {
+  if (/^[0-9]/.test(value)) {
+    value = 'VALUE_' + value;
+  }
   return toUpper(value).replace(/[^_a-zA-Z0-9]/g, '_');
 }
 
