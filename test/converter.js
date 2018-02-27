@@ -1,6 +1,6 @@
 const {test} = require('ava');
 const Ajv = require('ajv');
-const convert = require('../src/convert');
+const {newContext, convert, UnknownTypeReference} = require('../src/converter');
 const {
   parse, execute, buildSchema,
   GraphQLSchema, GraphQLObjectType, introspectionQuery
@@ -13,11 +13,12 @@ function cannonicalize (introspectionResult) {
   return introspectionResult;
 }
 
-async function testConversion (test, jsonSchema, expectedTypeName, expectedType) {
+async function testConversion (test, jsonSchema, expectedTypeName, expectedType, context) {
   const ajv = new Ajv();
   ajv.addSchema(jsonSchema);
 
-  const convertedType = convert(jsonSchema);
+  context = context || newContext();
+  const convertedType = convert(context, jsonSchema);
   const queryType = new GraphQLObjectType({
     name: 'Query',
     fields: {
@@ -110,4 +111,58 @@ test('array attributes', async function (test) {
   }`;
 
   await testConversion(test, simpleType, 'Array', expectedType);
+});
+
+test('Unknown $ref attribute type', async function (test) {
+  const simpleType = {
+    id: 'Ref',
+    type: 'object',
+    properties: {
+      attribute: {
+        $ref: 'UnknownType'
+      }
+    }
+  };
+
+  const expectedType = `type Ref {
+    attribute: UnknownType
+  }`;
+
+  const schema = testConversion(test, simpleType, 'Ref', expectedType);
+  await test.throws(schema, UnknownTypeReference);
+});
+
+test('Known $ref attribute type', async function (test) {
+  const otherType = {
+    id: 'OtherType',
+    type: 'object',
+    properties: {
+      attribute: {
+        type: 'string'
+      }
+    }
+  };
+
+  const refType = {
+    id: 'Ref',
+    type: 'object',
+    properties: {
+      attribute: {
+        $ref: 'OtherType'
+      }
+    }
+  };
+
+  const expectedType = `
+  type OtherType {
+    attribute: String
+  }
+
+  type Ref {
+    attribute: OtherType
+  }`;
+
+  const context = newContext();
+  convert(context, otherType);
+  await testConversion(test, refType, 'Ref', expectedType, context);
 });
