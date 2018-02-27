@@ -3,7 +3,7 @@ const {newContext, convert, UnknownTypeReference} = require('../src/converter');
 const path = require('path');
 const yargs = require('yargs');
 const {
-  GraphQLSchema, GraphQLObjectType, printSchema
+  GraphQLSchema, GraphQLObjectType, GraphQLString, printSchema
 } = require('graphql');
 
 function convertSchemas (context, schemas) {
@@ -56,14 +56,31 @@ async function convertDir (dir, asJs) {
       return result;
     }
   });
-  const schema = new GraphQLSchema({query: queryType});
+
+  const mutationType = new GraphQLObjectType({
+    name: 'Mutation',
+    fields: () => {
+      const result = {};
+      for (const [name, type] of context.inputs.entries()) {
+        result[name] = {
+          type: GraphQLString,
+          args: {input: {type}}
+        };
+      }
+
+      return result;
+    }
+  });
+
+  const schema = new GraphQLSchema({query: queryType, mutation: mutationType});
   const printed = printSchema(schema);
 
   // Strip out the Query type because it's not needed
   const withoutQuery = printed.replace(/^type Query {[^}]*}/m, '');
+  const withoutMutation = withoutQuery.replace(/^type Mutation {[^}]*}/m, '');
 
   if (asJs) {
-    console.log(`module.exports = \`\n${withoutQuery}\``);
+    console.log(`'use strict';\nmodule.exports = \`\n${withoutMutation}\`;\n`);
   } else {
     console.log(withoutQuery);
   }

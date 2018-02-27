@@ -1,6 +1,6 @@
 const {test} = require('ava');
 const Ajv = require('ajv');
-const {newContext, convert, UnknownTypeReference, getConvertEnumFromGraphQLCode} = require('../src/converter');
+const {INPUT_SUFFIX, newContext, convert, UnknownTypeReference, getConvertEnumFromGraphQLCode} = require('../src/converter');
 const {
   parse, execute, buildSchema, printSchema,
   GraphQLSchema, GraphQLObjectType, introspectionQuery
@@ -15,15 +15,25 @@ function cannonicalize (introspectionResult) {
   return introspectionResult;
 }
 
-function makeSchemaForType (type) {
+function makeSchemaForType (output, input) {
   const queryType = new GraphQLObjectType({
     name: 'Query',
     fields: {
-      findOne: { type }
+      findOne: { type: output }
     }
   });
 
-  return new GraphQLSchema({query: queryType});
+  const mutationType = new GraphQLObjectType({
+    name: 'Mutation',
+    fields: {
+      create: {
+        args: {input: {type: input}},
+        type: output
+      }
+    }
+  });
+
+  return new GraphQLSchema({query: queryType, mutation: mutationType});
 }
 
 async function testConversion (test, jsonSchema, expectedTypeName, expectedType, context) {
@@ -31,13 +41,17 @@ async function testConversion (test, jsonSchema, expectedTypeName, expectedType,
   ajv.addSchema(jsonSchema);
 
   context = context || newContext();
-  const convertedType = convert(context, jsonSchema);
-  const schema = makeSchemaForType(convertedType);
+  const {output, input} = convert(context, jsonSchema);
+  const schema = makeSchemaForType(output, input);
 
   const exepectedSchema = buildSchema(`
     ${expectedType}
     type Query {
       findOne: ${expectedTypeName}
+    }
+
+    type Mutation {
+      create(input: ${expectedTypeName}${INPUT_SUFFIX}): ${expectedTypeName}
     }
   `);
 
@@ -63,7 +77,12 @@ test('empty object', async function (test) {
 
   const expectedType = `type Empty {
     _typesWithoutFieldsAreNotAllowed_: String
-  }`;
+  }
+  
+  input Empty${INPUT_SUFFIX} {
+    _typesWithoutFieldsAreNotAllowed_: String
+  }
+  `;
 
   await testConversion(test, emptyType, 'Empty', expectedType);
 });
@@ -77,9 +96,15 @@ async function testAttrbuteType (test, jsonType, graphQLType) {
     }
   };
 
-  const expectedType = `type Simple {
+  const expectedType = `
+  type Simple {
     attribute: ${graphQLType}
-  }`;
+  }
+  
+  input Simple${INPUT_SUFFIX} {
+    attribute: ${graphQLType}
+  }
+  `;
 
   await testConversion(test, simpleType, 'Simple', expectedType);
 }
@@ -116,7 +141,46 @@ test('array attributes', async function (test) {
 
   const expectedType = `type Array {
     attribute: [Int!]
-  }`;
+  }
+
+  input Array${INPUT_SUFFIX} {
+    attribute: [Int!]
+  }
+  `;
+
+  await testConversion(test, simpleType, 'Array', expectedType);
+});
+
+test('required attributes', async function (test) {
+  const simpleType = {
+    id: 'Array',
+    type: 'object',
+    properties: {
+      attribute1: {
+        type: 'integer'
+      },
+      attribute2: {
+        type: 'integer'
+      },
+      attribute3: {
+        type: 'integer'
+      }
+    },
+    required: ['attribute1', 'attribute3']
+  };
+
+  const expectedType = `type Array {
+    attribute1: Int!
+    attribute2: Int
+    attribute3: Int!
+  }
+
+  input Array${INPUT_SUFFIX} {
+    attribute1: Int!
+    attribute2: Int
+    attribute3: Int!
+  }
+  `;
 
   await testConversion(test, simpleType, 'Array', expectedType);
 });
@@ -166,8 +230,16 @@ test('Known $ref attribute type', async function (test) {
     attribute: String
   }
 
+  input OtherType${INPUT_SUFFIX} {
+    attribute: String
+  }
+
   type Ref {
     attribute: OtherType
+  }
+
+  input Ref${INPUT_SUFFIX} {
+    attribute: OtherType${INPUT_SUFFIX}
   }`;
 
   const context = newContext();
@@ -204,8 +276,16 @@ test('Known $ref array attribute type', async function (test) {
     attribute: String
   }
 
+  input OtherType${INPUT_SUFFIX} {
+    attribute: String
+  }
+
   type Ref {
     attribute: [OtherType!]
+  }
+
+  input Ref${INPUT_SUFFIX} {
+    attribute: [OtherType${INPUT_SUFFIX}!]
   }`;
 
   const context = newContext();
@@ -241,7 +321,16 @@ test('Circular $ref attribute types', async function (test) {
 
   type Left {
     right: Right
-  }`;
+  }
+
+  input Right${INPUT_SUFFIX} {
+    left: Left${INPUT_SUFFIX}
+  }
+
+  input Left${INPUT_SUFFIX}{
+    right: Right${INPUT_SUFFIX}
+  }
+  `;
 
   const context = newContext();
   convert(context, rightType);
@@ -265,6 +354,9 @@ test('Enumeration attribute types', async function (test) {
     tall, average, short
   }
   type Person {
+    height: PersonHeight
+  }
+  input Person${INPUT_SUFFIX} {
     height: PersonHeight
   }`;
 
@@ -290,13 +382,16 @@ test('Enumeration attribute with forbidden characters', async function (test) {
   }
   type Person {
     height: PersonHeight
+  }
+  input Person${INPUT_SUFFIX} {
+    height: PersonHeight
   }`;
 
   const context = newContext();
   await testConversion(test, personType, 'Person', expectedType, context);
 });
 
-test('Enumeration attribute with numberic keys', async function (test) {
+test('Enumeration attribute with numeric keys', async function (test) {
   const personType = {
     id: 'Person',
     type: 'object',
@@ -314,7 +409,11 @@ test('Enumeration attribute with numberic keys', async function (test) {
   }
   type Person {
     age: PersonAge
-  }`;
+  }
+  input Person${INPUT_SUFFIX} {
+    age: PersonAge
+  }
+  `;
 
   const context = newContext();
   await testConversion(test, personType, 'Person', expectedType, context);
@@ -333,10 +432,10 @@ test('Enumeration conversion function', async function (test) {
   };
 
   const context = newContext();
-  const type = convert(context, personType);
+  const {output, input} = convert(context, personType);
   // Make a schema an print it just to force the field 'thunks'
   // to be resolved
-  const schema = makeSchemaForType(type);
+  const schema = makeSchemaForType(output, input);
   printSchema(schema);
 
   const convertCode = getConvertEnumFromGraphQLCode(context, 'Person.age');

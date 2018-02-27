@@ -1,14 +1,17 @@
 const {
   GraphQLObjectType, GraphQLString, GraphQLInt, GraphQLNonNull,
-  GraphQLFloat, GraphQLList, GraphQLBoolean, GraphQLEnumType
+  GraphQLInputObjectType, GraphQLFloat, GraphQLList, GraphQLBoolean, GraphQLEnumType
 } = require('graphql');
 const isEmpty = require('lodash/isEmpty');
 const keyBy = require('lodash/keyBy');
 const mapValues = require('lodash/mapValues');
 const map = require('lodash/map');
+const includes = require('lodash/includes');
 const uppercamelcase = require('uppercamelcase');
 const camelcase = require('camelcase');
 const escodegen = require('escodegen');
+
+const INPUT_SUFFIX = 'In';
 
 function mapBasicAttributeType (type, attributeName) {
   switch (type) {
@@ -32,17 +35,20 @@ function buildEnumType (context, attributeName, enumValues) {
   const graphqlToJsonMap = keyBy(enumValues, toSafeEnumKey);
 
   context.enumMaps.set(attributeName, graphqlToJsonMap);
-  return new GraphQLEnumType({
+  const enumType = new GraphQLEnumType({
     name: enumName,
     values: mapValues(graphqlToJsonMap, function (value) {
       return {value};
     })
   });
+
+  context.enumTypes.set(attributeName, enumType);
+  return enumType;
 }
 
-function mapType (context, attributeDefinition, attributeName) {
+function mapType (context, attributeDefinition, attributeName, buildingInputType) {
   if (attributeDefinition.type === 'array') {
-    const elementType = mapType(context, attributeDefinition.items, attributeName);
+    const elementType = mapType(context, attributeDefinition.items, attributeName, buildingInputType);
     return GraphQLList(GraphQLNonNull(elementType));
   }
 
@@ -52,12 +58,17 @@ function mapType (context, attributeDefinition, attributeName) {
       throw new Error(`The attribute ${attributeName} not supported because only conversion of string based enumertions are implemented`);
     }
 
+    const existingEnum = context.enumTypes.get(attributeName);
+    if (existingEnum) {
+      return existingEnum;
+    }
     return buildEnumType(context, attributeName, enumValues);
   }
 
   const typeReference = attributeDefinition.$ref;
   if (typeReference) {
-    const referencedType = context.types.get(typeReference);
+    const typeMap = buildingInputType ? context.inputs : context.types;
+    const referencedType = typeMap.get(typeReference);
     if (!referencedType) {
       throw new UnknownTypeReference(`The referenced type ${typeReference} is unknown`);
     }
@@ -67,7 +78,7 @@ function mapType (context, attributeDefinition, attributeName) {
   return mapBasicAttributeType(attributeDefinition.type, attributeName);
 }
 
-function fieldsFromSchema (context, parentTypeName, schema) {
+function fieldsFromSchema (context, parentTypeName, schema, buildingInputType) {
   if (isEmpty(schema.properties)) {
     return {
       _typesWithoutFieldsAreNotAllowed_: {
@@ -78,7 +89,9 @@ function fieldsFromSchema (context, parentTypeName, schema) {
 
   return mapValues(schema.properties, function (attributeDefinition, attributeName) {
     const qualifiedAttributeName = `${parentTypeName}.${attributeName}`;
-    return {type: mapType(context, attributeDefinition, qualifiedAttributeName)};
+    const type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
+    const modifiedType = includes(schema.required, attributeName) ? GraphQLNonNull(type) : type;
+    return {type: modifiedType};
   });
 }
 
@@ -89,16 +102,24 @@ function convert (context, schema) {
     fields: () => fieldsFromSchema(context, typeName, schema)
   });
 
+  const graphQlInputType = new GraphQLInputObjectType({
+    name: typeName + INPUT_SUFFIX,
+    fields: () => fieldsFromSchema(context, typeName, schema, true)
+  });
+
   if (schema.id) {
     context.types.set(typeName, graphQlType);
+    context.inputs.set(typeName, graphQlInputType);
   }
 
-  return graphQlType;
+  return {output: graphQlType, input: graphQlInputType};
 }
 
 function newContext () {
   return {
     types: new Map(),
+    inputs: new Map(),
+    enumTypes: new Map(),
     enumMaps: new Map()
   };
 }
@@ -143,6 +164,7 @@ function getConvertEnumFromGraphQLCode (context, attributePath) {
 }
 
 module.exports = {
+  INPUT_SUFFIX,
   UnknownTypeReference,
   newContext,
   convert,
