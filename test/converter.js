@@ -391,6 +391,33 @@ test('Enumeration attribute with forbidden characters', async function (test) {
   await testConversion(test, personType, 'Person', expectedType, context);
 });
 
+test('Enumeration attribute with comparison symbols', async function (test) {
+  const personType = {
+    id: 'Comparator',
+    type: 'object',
+    properties: {
+      operator: {
+        type: 'string',
+        enum: ['<', '<=', '>=', '>']
+      }
+    }
+  };
+
+  const expectedType = `
+  enum ComparatorOperator {
+    LT, LTE, GTE, GT
+  }
+  type Comparator {
+    operator: ComparatorOperator
+  }
+  input Comparator${INPUT_SUFFIX} {
+    operator: ComparatorOperator
+  }`;
+
+  const context = newContext();
+  await testConversion(test, personType, 'Comparator', expectedType, context);
+});
+
 test('Enumeration attribute with numeric keys', async function (test) {
   const personType = {
     id: 'Person',

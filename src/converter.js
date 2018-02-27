@@ -27,7 +27,15 @@ function toSafeEnumKey (value) {
   if (/^[0-9]/.test(value)) {
     value = 'VALUE_' + value;
   }
-  return value.replace(/[^_a-zA-Z0-9]/g, '_');
+
+  switch (value) {
+    case '<': return 'LT';
+    case '<=': return 'LTE';
+    case '>=': return 'GTE';
+    case '>': return 'GT';
+    default:
+      return value.replace(/[^_a-zA-Z0-9]/g, '_');
+  }
 }
 
 function buildEnumType (context, attributeName, enumValues) {
