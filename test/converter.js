@@ -111,7 +111,7 @@ test('array attributes', async function (test) {
   };
 
   const expectedType = `type Array {
-    attribute: [Int]
+    attribute: [Int!]
   }`;
 
   await testConversion(test, simpleType, 'Array', expectedType);
@@ -201,7 +201,7 @@ test('Known $ref array attribute type', async function (test) {
   }
 
   type Ref {
-    attribute: [OtherType]
+    attribute: [OtherType!]
   }`;
 
   const context = newContext();

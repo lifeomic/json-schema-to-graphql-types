@@ -37,7 +37,7 @@ function buildEnumType (attributeName, enumValues) {
 function mapType (context, attributeDefinition, attributeName) {
   if (attributeDefinition.type === 'array') {
     const elementType = mapType(context, attributeDefinition.items, attributeName);
-    return GraphQLList(elementType);
+    return GraphQLList(GraphQLNonNull(elementType));
   }
 
   const enumValues = attributeDefinition.enum;
