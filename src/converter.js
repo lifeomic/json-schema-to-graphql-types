@@ -1,17 +1,19 @@
 const {
-  GraphQLObjectType, GraphQLString, GraphQLInt, GraphQLNonNull,
+  GraphQLObjectType, GraphQLString, GraphQLInt, GraphQLNonNull, GraphQLUnionType,
   GraphQLInputObjectType, GraphQLFloat, GraphQLList, GraphQLBoolean, GraphQLEnumType
 } = require('graphql');
 const isEmpty = require('lodash/isEmpty');
 const keyBy = require('lodash/keyBy');
 const mapValues = require('lodash/mapValues');
 const map = require('lodash/map');
+const omitBy = require('lodash/omitBy');
 const includes = require('lodash/includes');
 const uppercamelcase = require('uppercamelcase');
 const camelcase = require('camelcase');
 const escodegen = require('escodegen');
 
 const INPUT_SUFFIX = 'In';
+const DROP_ATTRIBUTE_MARKER = Symbol('A marker to drop the attributes');
 
 function mapBasicAttributeType (type, attributeName) {
   switch (type) {
@@ -57,6 +59,9 @@ function buildEnumType (context, attributeName, enumValues) {
 function mapType (context, attributeDefinition, attributeName, buildingInputType) {
   if (attributeDefinition.type === 'array') {
     const elementType = mapType(context, attributeDefinition.items, attributeName, buildingInputType);
+    if (elementType === DROP_ATTRIBUTE_MARKER) {
+      return DROP_ATTRIBUTE_MARKER;
+    }
     return GraphQLList(GraphQLNonNull(elementType));
   }
 
@@ -78,7 +83,10 @@ function mapType (context, attributeDefinition, attributeName, buildingInputType
     const typeMap = buildingInputType ? context.inputs : context.types;
     const referencedType = typeMap.get(typeReference);
     if (!referencedType) {
-      throw new UnknownTypeReference(`The referenced type ${typeReference} is unknown`);
+      if (context.types.get(typeReference) instanceof GraphQLUnionType && buildingInputType) {
+        return DROP_ATTRIBUTE_MARKER;
+      }
+      throw new UnknownTypeReference(`The referenced type ${typeReference} (${buildingInputType}) is unknown in ${attributeName}`);
     }
     return referencedType;
   }
@@ -95,32 +103,58 @@ function fieldsFromSchema (context, parentTypeName, schema, buildingInputType) {
     };
   }
 
-  return mapValues(schema.properties, function (attributeDefinition, attributeName) {
+  const fields = mapValues(schema.properties, function (attributeDefinition, attributeName) {
     const qualifiedAttributeName = `${parentTypeName}.${attributeName}`;
     const type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
     const modifiedType = includes(schema.required, attributeName) ? GraphQLNonNull(type) : type;
     return {type: modifiedType};
   });
+
+  const prunedFields = omitBy(fields, {type: DROP_ATTRIBUTE_MARKER});
+  return prunedFields;
 }
 
-function convert (context, schema) {
-  const typeName = schema.id || schema.title;
-  const graphQlType = new GraphQLObjectType({
+function buildObjectType (context, typeName, schema) {
+  const output = new GraphQLObjectType({
     name: typeName,
     fields: () => fieldsFromSchema(context, typeName, schema)
   });
 
-  const graphQlInputType = new GraphQLInputObjectType({
+  const input = new GraphQLInputObjectType({
     name: typeName + INPUT_SUFFIX,
     fields: () => fieldsFromSchema(context, typeName, schema, true)
   });
 
+  return {input, output};
+}
+
+function buildUnionType (context, typeName, schema) {
+  const output = new GraphQLUnionType({
+    name: typeName,
+    types: () => {
+      return map(schema.switch, function (switchCase, caseIndex) {
+        return mapType(context, switchCase.then, `${typeName}.switch[${caseIndex}]`);
+      });
+    }
+  });
+
+  return {output, input: undefined};
+}
+
+function convert (context, schema) {
+  const typeName = schema.id || schema.title;
+
+  const typeBuilder = schema.switch ? buildUnionType : buildObjectType;
+  const {input, output} = typeBuilder(context, typeName, schema);
+
   if (schema.id) {
-    context.types.set(typeName, graphQlType);
-    context.inputs.set(typeName, graphQlInputType);
+    context.types.set(typeName, output);
+    if (input) {
+      context.inputs.set(typeName, input);
+    }
   }
 
-  return {output: graphQlType, input: graphQlInputType};
+  return {output, input};
 }
 
 function newContext () {

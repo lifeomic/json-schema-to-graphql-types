@@ -12,6 +12,19 @@ function cannonicalize (introspectionResult) {
   introspectionResult.data.__schema.directives.sort(function (a, b) {
     return a.name < b.name;
   });
+
+  for (const type of introspectionResult.data.__schema.types) {
+    if (type.fields) {
+      type.fields.sort(function (a, b) {
+        return a.name < b.name;
+      });
+    }
+    if (type.inputFields) {
+      type.inputFields.sort(function (a, b) {
+        return a.name < b.name;
+      });
+    }
+  }
   return introspectionResult;
 }
 
@@ -23,7 +36,7 @@ function makeSchemaForType (output, input) {
     }
   });
 
-  const mutationType = new GraphQLObjectType({
+  const mutationType = input ? new GraphQLObjectType({
     name: 'Mutation',
     fields: {
       create: {
@@ -31,18 +44,18 @@ function makeSchemaForType (output, input) {
         type: output
       }
     }
-  });
+  }) : undefined;
 
   return new GraphQLSchema({query: queryType, mutation: mutationType});
 }
 
-async function testConversion (test, jsonSchema, expectedTypeName, expectedType, context) {
+async function testConversion (test, jsonSchema, expectedTypeName, expectedType, context, skipInput) {
   const ajv = new Ajv();
   ajv.addSchema(jsonSchema);
 
   context = context || newContext();
   const {output, input} = convert(context, jsonSchema);
-  const schema = makeSchemaForType(output, input);
+  const schema = makeSchemaForType(output, skipInput ? undefined : input);
 
   const exepectedSchema = buildSchema(`
     ${expectedType}
@@ -50,9 +63,10 @@ async function testConversion (test, jsonSchema, expectedTypeName, expectedType,
       findOne: ${expectedTypeName}
     }
 
+    ${skipInput ? '' : `
     type Mutation {
       create(input: ${expectedTypeName}${INPUT_SUFFIX}): ${expectedTypeName}
-    }
+    }`}
   `);
 
   const introspection = await execute({
@@ -473,4 +487,96 @@ test('Enumeration conversion function', async function (test) {
   test.is(fromGraphQl('VALUE_1'), '1');
   test.is(fromGraphQl('VALUE_10'), '10');
   test.is(fromGraphQl('VALUE_100'), '100');
+});
+
+test('map switch schemas to unions', async function (test) {
+  const parentType = {
+    id: 'Parent',
+    type: 'object',
+    properties: {
+      type: {
+        type: 'string'
+      },
+      name: {
+        type: 'string'
+      }
+    }
+  };
+
+  const childType = {
+    id: 'Child',
+    type: 'object',
+    properties: {
+      type: {
+        type: 'string'
+      },
+      name: {
+        type: 'string'
+      },
+      parent: {
+        $ref: 'Parent'
+      },
+      friend: {
+        $ref: 'ParentOrChild'
+      }
+    }
+  };
+
+  const unionType = {
+    id: 'ParentOrChild',
+    switch: [
+      {
+        if: {
+          properties: {
+            type: {
+              constant: 'Parent'
+            }
+          }
+        },
+        then: {
+          $ref: 'Parent'
+        }
+      },
+      {
+        if: {
+          properties: {
+            type: {
+              constant: 'Child'
+            }
+          }
+        },
+        then: {
+          $ref: 'Child'
+        }
+      }
+    ]
+  };
+
+  const expectedType = `
+  type Parent {
+    name: String
+    type: String
+  }
+  type Child {
+    name: String
+    type: String
+    parent: Parent
+    friend: ParentOrChild
+  }
+  union ParentOrChild = Parent | Child
+  input Parent${INPUT_SUFFIX} {
+    name: String
+    type: String
+  }
+  input Child${INPUT_SUFFIX} {
+    name: String
+    type: String
+    parent: Parent${INPUT_SUFFIX}
+  }
+  `;
+
+  const context = newContext();
+  convert(context, unionType);
+  convert(context, parentType);
+  await testConversion(test, childType, 'Child', expectedType, context);
 });
