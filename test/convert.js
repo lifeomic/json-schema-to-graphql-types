@@ -90,3 +90,24 @@ test('integer attributes', async function (test) {
 test('float attributes', async function (test) {
   await testAttrbuteType(test, 'number', 'Float');
 });
+
+test('array attributes', async function (test) {
+  const simpleType = {
+    id: 'Array',
+    type: 'object',
+    properties: {
+      attribute: {
+        type: 'array',
+        items: {
+          type: 'integer'
+        }
+      }
+    }
+  };
+
+  const expectedType = `type Array {
+    attribute: [Int]
+  }`;
+
+  await testConversion(test, simpleType, 'Array', expectedType);
+});

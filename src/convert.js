@@ -1,8 +1,8 @@
-const {GraphQLObjectType, GraphQLString, GraphQLInt, GraphQLFloat} = require('graphql');
+const {GraphQLObjectType, GraphQLString, GraphQLInt, GraphQLFloat, GraphQLList} = require('graphql');
 const isEmpty = require('lodash/isEmpty');
 const mapValues = require('lodash/mapValues');
 
-function mapAttributeType (type) {
+function mapBasicAttributeType (type) {
   switch (type) {
     case 'string': return GraphQLString;
     case 'integer': return GraphQLInt;
@@ -21,7 +21,14 @@ function fieldsFromSchema (schema) {
   }
 
   return mapValues(schema.properties, function (attributeDefinition, key) {
-    return {type: mapAttributeType(attributeDefinition.type)};
+    if (attributeDefinition.type === 'array') {
+      const elementType = mapBasicAttributeType(attributeDefinition.items.type);
+      return {
+        type: GraphQLList(elementType)
+      };
+    }
+
+    return {type: mapBasicAttributeType(attributeDefinition.type)};
   });
 }
 
