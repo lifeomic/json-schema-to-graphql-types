@@ -35,10 +35,16 @@ function convertSchemas (context, schemas) {
 }
 
 async function convertDir (dir, asJs) {
+  // It is intentional to allow the user to specify the directory to be read.
+  // The directory comes from the command line argument
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   const files = await fs.readdir(dir);
   const schemas = [];
 
   for (const file of files) {
+    // It is intentional to allow the user to specify the directory to be read.
+    // The directory comes from the command line argument
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const schemaContents = await fs.readFile(path.join(dir, file));
     schemas.push(JSON.parse(schemaContents));
   }
@@ -51,6 +57,11 @@ async function convertDir (dir, asJs) {
     fields: () => {
       const result = {};
       for (const [name, type] of context.types.entries()) {
+        // It's ok to ignore the object injection attack here because
+        // the object being edited does not contain any private data to be
+        // protected and none of the attributes will be used as functions
+        // just a map of attribute to values.
+        // eslint-disable-next-line security/detect-object-injection
         result[name] = {type};
       }
       return result;
@@ -62,6 +73,11 @@ async function convertDir (dir, asJs) {
     fields: () => {
       const result = {};
       for (const [name, type] of context.inputs.entries()) {
+        // It's ok to ignore the object injection attack here because
+        // the object being edited does not contain any private data to be
+        // protected and none of the attributes will be used as functions
+        // just a map of attribute to values.
+        // eslint-disable-next-line security/detect-object-injection
         result[name] = {
           type: GraphQLString,
           args: {input: {type}}

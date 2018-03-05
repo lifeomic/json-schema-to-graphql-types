@@ -482,7 +482,13 @@ test('Enumeration conversion function', async function (test) {
   const convertCode = getConvertEnumFromGraphQLCode(context, 'Person.age');
 
   const convertModule = await tmp.file();
+  // It is ok to ignore this non-literal require because the path is coming from
+  // the temp file creation code above.
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   await fs.writeFile(convertModule.fd, `module.exports = ${convertCode}`);
+  // It is ok to ignore this non-literal require because the path is coming from
+  // the temp file creation code above.
+  // eslint-disable-next-line security/detect-non-literal-require
   const fromGraphQl = require(convertModule.path);
   test.is(fromGraphQl('VALUE_1'), '1');
   test.is(fromGraphQl('VALUE_10'), '10');
