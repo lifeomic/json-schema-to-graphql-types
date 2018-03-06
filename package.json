@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "lint": "eslint .",
-    "test": "ava",
+    "test": "nyc ava",
     "posttest": "yarn lint"
   },
   "author": "Matt Lavin <matt.lavin@gmail.com>",
@@ -31,6 +31,14 @@
     "eslint-plugin-promise": "^3.6.0",
     "eslint-plugin-security": "^1.4.0",
     "eslint-plugin-standard": "^3.0.1",
+    "nyc": "^11.4.1",
     "tmp-promise": "^1.0.4"
+  },
+  "nyc": {
+    "check-coverage": true,
+    "lines": 100,
+    "statements": 100,
+    "functions": 100,
+    "branches": 100
   }
 }

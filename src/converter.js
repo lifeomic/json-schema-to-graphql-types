@@ -142,16 +142,14 @@ function buildUnionType (context, typeName, schema) {
 }
 
 function convert (context, schema) {
-  const typeName = schema.id || schema.title;
+  const typeName = schema.id;
 
   const typeBuilder = schema.switch ? buildUnionType : buildObjectType;
   const {input, output} = typeBuilder(context, typeName, schema);
 
-  if (schema.id) {
-    context.types.set(typeName, output);
-    if (input) {
-      context.inputs.set(typeName, input);
-    }
+  context.types.set(typeName, output);
+  if (input) {
+    context.inputs.set(typeName, input);
   }
 
   return {output, input};

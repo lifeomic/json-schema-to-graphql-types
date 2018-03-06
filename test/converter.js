@@ -49,13 +49,15 @@ function makeSchemaForType (output, input) {
   return new GraphQLSchema({query: queryType, mutation: mutationType});
 }
 
-async function testConversion (test, jsonSchema, expectedTypeName, expectedType, context, skipInput) {
-  const ajv = new Ajv();
-  ajv.addSchema(jsonSchema);
+async function testConversion (test, jsonSchema, expectedTypeName, expectedType, context, options = {}) {
+  if (!options.skipValidation) {
+    const ajv = new Ajv({schemaId: 'auto'});
+    ajv.addSchema(jsonSchema);
+  }
 
   context = context || newContext();
   const {output, input} = convert(context, jsonSchema);
-  const schema = makeSchemaForType(output, skipInput ? undefined : input);
+  const schema = makeSchemaForType(output, options.skipInput ? undefined : input);
 
   const exepectedSchema = buildSchema(`
     ${expectedType}
@@ -63,7 +65,7 @@ async function testConversion (test, jsonSchema, expectedTypeName, expectedType,
       findOne: ${expectedTypeName}
     }
 
-    ${skipInput ? '' : `
+    ${options.skipInput ? '' : `
     type Mutation {
       create(input: ${expectedTypeName}${INPUT_SUFFIX}): ${expectedTypeName}
     }`}
@@ -101,7 +103,7 @@ test('empty object', async function (test) {
   await testConversion(test, emptyType, 'Empty', expectedType);
 });
 
-async function testAttrbuteType (test, jsonType, graphQLType) {
+async function testAttrbuteType (test, jsonType, graphQLType, options) {
   const simpleType = {
     id: 'Simple',
     type: 'object',
@@ -120,7 +122,7 @@ async function testAttrbuteType (test, jsonType, graphQLType) {
   }
   `;
 
-  await testConversion(test, simpleType, 'Simple', expectedType);
+  await testConversion(test, simpleType, 'Simple', expectedType, undefined, options);
 }
 
 test('string attributes', async function (test) {
@@ -137,6 +139,11 @@ test('float attributes', async function (test) {
 
 test('boolean attributes', async function (test) {
   await testAttrbuteType(test, 'boolean', 'Boolean');
+});
+
+test('fail on unknown types attributes', async function (test) {
+  const assertion = testAttrbuteType(test, 'unknown', 'unknown', {skipValidation: true});
+  await test.throws(assertion, 'A JSON Schema attribute type unknown on attribute Simple.attribute does not have a known GraphQL mapping');
 });
 
 test('array attributes', async function (test) {
@@ -460,6 +467,23 @@ test('Enumeration attribute with numeric keys', async function (test) {
   await testConversion(test, personType, 'Person', expectedType, context);
 });
 
+test('Enumeration attribute with unsupported type', async function (test) {
+  const personType = {
+    id: 'Person',
+    type: 'object',
+    properties: {
+      age: {
+        type: 'integer',
+        enum: [1, 2, 3]
+      }
+    }
+  };
+
+  const context = newContext();
+  const assertion = testConversion(test, personType, 'Person', null, context);
+  await test.throws(assertion, 'The attribute Person.age not supported because only conversion of string based enumertions are implemented');
+});
+
 test('Enumeration conversion function', async function (test) {
   const personType = {
     id: 'Person',
@@ -522,8 +546,14 @@ test('map switch schemas to unions', async function (test) {
       parent: {
         $ref: 'Parent'
       },
-      friend: {
+      bestFriend: {
         $ref: 'ParentOrChild'
+      },
+      friends: {
+        type: 'array',
+        items: {
+          $ref: 'ParentOrChild'
+        }
       }
     }
   };
@@ -567,7 +597,8 @@ test('map switch schemas to unions', async function (test) {
     name: String
     type: String
     parent: Parent
-    friend: ParentOrChild
+    bestFriend: ParentOrChild
+    friends: [ParentOrChild!]
   }
   union ParentOrChild = Parent | Child
   input Parent${INPUT_SUFFIX} {
