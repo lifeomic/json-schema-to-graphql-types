@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const fs = require('fs-extra');
 const {newContext, convert, UnknownTypeReference} = require('../src/converter');
 const path = require('path');
