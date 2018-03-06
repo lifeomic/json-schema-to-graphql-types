@@ -2,14 +2,24 @@
   "name": "json-schema-to-graphql-types",
   "version": "1.0.0",
   "description": "A utility to convert JSON Schema types into GraphQL types",
-  "main": "src/index.js",
+  "bin": {
+    "convert-json-schemas-to-graphql-types": "bin/convert-json-schemas-to-graphql-types.js"
+  },
   "scripts": {
     "lint": "eslint .",
     "test": "nyc ava",
     "posttest": "yarn lint",
     "coverage": "nyc report --reporter=text-lcov | coveralls"
   },
-  "author": "Matt Lavin <matt.lavin@gmail.com>",
+  "engines": {
+    "node": ">=8"
+  },
+  "keywords": [
+    "graphql",
+    "json-schema",
+    "converter"
+  ],
+  "author": "Matt Lavin <matt.lavin@lifeomic.com>",
   "license": "MIT",
   "dependencies": {
     "camelcase": "^4.1.0",
