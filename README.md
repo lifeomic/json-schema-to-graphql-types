@@ -7,7 +7,7 @@ JSON Schema to GraphQL Types Converter
 This tools will convert a directory of JSON Schemas into set of GraphQL types.
 To use it, do the following:
 
-    npm install -g json-schema-to-graphql-types
+    npm install -g @lifeomic/json-schema-to-graphql-types
     convert-json-schemas-to-graphql-types <some-dir-with-json-schemas>
 
 When that is run, the tool will output a list of GraphQL types that match the
