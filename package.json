@@ -11,6 +11,7 @@
     "posttest": "yarn lint",
     "coverage": "nyc report --reporter=text-lcov | coveralls"
   },
+  "main": "./src/index.js",
   "engines": {
     "node": ">=8"
   },

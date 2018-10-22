@@ -105,7 +105,16 @@ function fieldsFromSchema (context, parentTypeName, schema, buildingInputType) {
 
   const fields = mapValues(schema.properties, function (attributeDefinition, attributeName) {
     const qualifiedAttributeName = `${parentTypeName}.${attributeName}`;
-    const type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
+    let type;
+    if (attributeDefinition.type === 'object') {
+      const name = uppercamelcase(`${qualifiedAttributeName}${buildingInputType ? INPUT_SUFFIX : ''}`);
+      const fields = fieldsFromSchema(context, qualifiedAttributeName, attributeDefinition, buildingInputType);
+      type = buildingInputType
+        ? new GraphQLInputObjectType({name, fields})
+        : new GraphQLObjectType({name, fields});
+    } else {
+      type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
+    }
     const modifiedType = includes(schema.required, attributeName) ? GraphQLNonNull(type) : type;
     return {type: modifiedType};
   });
