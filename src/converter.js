@@ -13,7 +13,18 @@ const camelcase = require('camelcase');
 const escodegen = require('escodegen');
 
 const INPUT_SUFFIX = 'In';
+const DEFINITION_PREFIX = 'Definition';
 const DROP_ATTRIBUTE_MARKER = Symbol('A marker to drop the attributes');
+
+const referencePrefix = '#/definitions/';
+function getItemTypeName (typeName, buildingInputType) {
+  return uppercamelcase(`${typeName}${buildingInputType ? INPUT_SUFFIX : ''}`);
+}
+function getReferenceName (referenceName, buildingInputType) {
+  return referenceName.startsWith(referencePrefix)
+    ? getItemTypeName(`${DEFINITION_PREFIX}.${referenceName.split(referencePrefix)[1]}`, buildingInputType)
+    : referenceName;
+}
 
 function mapBasicAttributeType (type, attributeName) {
   switch (type) {
@@ -56,23 +67,53 @@ function buildEnumType (context, attributeName, enumValues) {
   return enumType;
 }
 
-function mapType (context, attributeDefinition, attributeName, buildingInputType) {
-  if (attributeDefinition.type === 'object') {
-    const name = uppercamelcase(`${attributeName}${buildingInputType ? INPUT_SUFFIX : ''}`);
-    const fields = fieldsFromSchema(context, attributeName, attributeDefinition, buildingInputType);
-    return buildingInputType
-      ? new GraphQLInputObjectType({name, fields})
-      : new GraphQLObjectType({name, fields});
+// Handles any custom object types. It will create a GraphQLInputObjectType/GraphQLObjectType, and
+// will map on all the properties of the object with mapType to match to the corresponding graphql
+// type. It also handles the required/nonNull types
+function objectFromSchema (context, schema, typeName, buildingInputType) {
+  function getFields () {
+    let fields;
+    if (isEmpty(schema.properties)) {
+      fields = {
+        _typesWithoutFieldsAreNotAllowed_: {
+          type: GraphQLString
+        }
+      };
+    } else {
+      fields = mapValues(schema.properties, function (attributeDefinition, attributeName) {
+        const qualifiedAttributeName = `${typeName}.${attributeName}`;
+        const type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
+
+        const modifiedType = includes(schema.required, attributeName) ? GraphQLNonNull(type) : type;
+        return {type: modifiedType};
+      });
+    }
+
+    return omitBy(fields, {type: DROP_ATTRIBUTE_MARKER});
   }
 
+  const name = getItemTypeName(typeName, buildingInputType);
+  // getFields need to be called lazily, since some types might not be available at the creation of
+  // the object (with circular refs for instance)
+  return buildingInputType
+    ? new GraphQLInputObjectType({name, fields: () => getFields()})
+    : new GraphQLObjectType({name, fields: () => getFields()});
+}
+
+// Matches any json schema type to the graphql corresponding type (including recursive types)
+function mapType (context, attributeDefinition, attributeName, buildingInputType) {
   if (attributeDefinition.type === 'array') {
-    const elementType = mapType(context, attributeDefinition.items, attributeName, buildingInputType);
+    const itemName = attributeDefinition.items.$ref ? attributeName : `${attributeName}Item`;
+    const elementType = mapType(context, attributeDefinition.items, itemName, buildingInputType);
     if (elementType === DROP_ATTRIBUTE_MARKER) {
       return DROP_ATTRIBUTE_MARKER;
     }
     return GraphQLList(GraphQLNonNull(elementType));
   }
 
+  if (attributeDefinition.type === 'object') {
+    return objectFromSchema(context, attributeDefinition, attributeName, buildingInputType);
+  }
   const enumValues = attributeDefinition.enum;
   if (enumValues) {
     if (attributeDefinition.type !== 'string') {
@@ -83,18 +124,20 @@ function mapType (context, attributeDefinition, attributeName, buildingInputType
     if (existingEnum) {
       return existingEnum;
     }
+
     return buildEnumType(context, attributeName, enumValues);
   }
 
   const typeReference = attributeDefinition.$ref;
   if (typeReference) {
+    const typeReferenceName = getReferenceName(typeReference, buildingInputType);
     const typeMap = buildingInputType ? context.inputs : context.types;
-    const referencedType = typeMap.get(typeReference);
+    const referencedType = typeMap.get(typeReferenceName);
     if (!referencedType) {
-      if (context.types.get(typeReference) instanceof GraphQLUnionType && buildingInputType) {
+      if (context.types.get(typeReferenceName) instanceof GraphQLUnionType && buildingInputType) {
         return DROP_ATTRIBUTE_MARKER;
       }
-      throw new UnknownTypeReference(`The referenced type ${typeReference} (${buildingInputType}) is unknown in ${attributeName}`);
+      throw new UnknownTypeReference(`The referenced type ${typeReferenceName} (${buildingInputType}) is unknown in ${attributeName}`);
     }
     return referencedType;
   }
@@ -102,36 +145,21 @@ function mapType (context, attributeDefinition, attributeName, buildingInputType
   return mapBasicAttributeType(attributeDefinition.type, attributeName);
 }
 
-function fieldsFromSchema (context, parentTypeName, schema, buildingInputType) {
-  if (isEmpty(schema.properties)) {
-    return {
-      _typesWithoutFieldsAreNotAllowed_: {
-        type: GraphQLString
-      }
-    };
+function registerDefinitionTypes (context, schema, buildingInputType) {
+  if (schema.definitions) {
+    const typeMap = buildingInputType ? context.inputs : context.types;
+    mapValues(schema.definitions, function (definition, definitionName) {
+      const itemName = uppercamelcase(`${DEFINITION_PREFIX}.${definitionName}`);
+      typeMap.set(getItemTypeName(itemName, buildingInputType), mapType(context, definition, itemName, buildingInputType));
+    });
   }
-
-  const fields = mapValues(schema.properties, function (attributeDefinition, attributeName) {
-    const qualifiedAttributeName = `${parentTypeName}.${attributeName}`;
-    const type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
-    const modifiedType = includes(schema.required, attributeName) ? GraphQLNonNull(type) : type;
-    return {type: modifiedType};
-  });
-
-  const prunedFields = omitBy(fields, {type: DROP_ATTRIBUTE_MARKER});
-  return prunedFields;
 }
 
-function buildObjectType (context, typeName, schema) {
-  const output = new GraphQLObjectType({
-    name: typeName,
-    fields: () => fieldsFromSchema(context, typeName, schema)
-  });
-
-  const input = new GraphQLInputObjectType({
-    name: typeName + INPUT_SUFFIX,
-    fields: () => fieldsFromSchema(context, typeName, schema, true)
-  });
+function buildRootType (context, typeName, schema) {
+  registerDefinitionTypes(context, schema);
+  registerDefinitionTypes(context, schema, true);
+  const output = mapType(context, schema, typeName);
+  const input = mapType(context, schema, typeName, true);
 
   return {input, output};
 }
@@ -146,13 +174,15 @@ function buildUnionType (context, typeName, schema) {
     }
   });
 
+  // There are no input union types in GraphQL
+  // https://github.com/facebook/graphql/issues/488
   return {output, input: undefined};
 }
 
 function convert (context, schema) {
   const typeName = schema.id;
 
-  const typeBuilder = schema.switch ? buildUnionType : buildObjectType;
+  const typeBuilder = schema.switch ? buildUnionType : buildRootType;
   const {input, output} = typeBuilder(context, typeName, schema);
 
   context.types.set(typeName, output);
