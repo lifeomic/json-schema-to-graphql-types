@@ -57,6 +57,14 @@ function buildEnumType (context, attributeName, enumValues) {
 }
 
 function mapType (context, attributeDefinition, attributeName, buildingInputType) {
+  if (attributeDefinition.type === 'object') {
+    const name = uppercamelcase(`${attributeName}${buildingInputType ? INPUT_SUFFIX : ''}`);
+    const fields = fieldsFromSchema(context, attributeName, attributeDefinition, buildingInputType);
+    return buildingInputType
+      ? new GraphQLInputObjectType({name, fields})
+      : new GraphQLObjectType({name, fields});
+  }
+
   if (attributeDefinition.type === 'array') {
     const elementType = mapType(context, attributeDefinition.items, attributeName, buildingInputType);
     if (elementType === DROP_ATTRIBUTE_MARKER) {

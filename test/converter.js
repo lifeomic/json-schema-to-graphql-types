@@ -49,6 +49,20 @@ function makeSchemaForType (output, input) {
   return new GraphQLSchema({query: queryType, mutation: mutationType});
 }
 
+async function compareSchemas (test, schema, expectedSchema) {
+  const introspection = await execute({
+    schema,
+    document: parse(introspectionQuery)
+  });
+
+  const expectedIntrospection = await execute({
+    schema: expectedSchema,
+    document: parse(introspectionQuery)
+  });
+
+  test.deepEqual(cannonicalize(introspection), cannonicalize(expectedIntrospection));
+}
+
 async function testConversion (test, jsonSchema, expectedTypeName, expectedType, context, options = {}) {
   if (!options.skipValidation) {
     const ajv = new Ajv({schemaId: 'auto'});
@@ -59,7 +73,7 @@ async function testConversion (test, jsonSchema, expectedTypeName, expectedType,
   const {output, input} = convert(context, jsonSchema);
   const schema = makeSchemaForType(output, options.skipInput ? undefined : input);
 
-  const exepectedSchema = buildSchema(`
+  const expectedSchema = buildSchema(`
     ${expectedType}
     type Query {
       findOne: ${expectedTypeName}
@@ -71,17 +85,7 @@ async function testConversion (test, jsonSchema, expectedTypeName, expectedType,
     }`}
   `);
 
-  const introspection = await execute({
-    schema,
-    document: parse(introspectionQuery)
-  });
-
-  const expectedIntrospection = await execute({
-    schema: exepectedSchema,
-    document: parse(introspectionQuery)
-  });
-
-  test.deepEqual(cannonicalize(introspection), cannonicalize(expectedIntrospection));
+  compareSchemas(test, schema, expectedSchema);
 }
 
 test('empty object', async function (test) {
@@ -94,7 +98,6 @@ test('empty object', async function (test) {
   const expectedType = `type Empty {
     _typesWithoutFieldsAreNotAllowed_: String
   }
-  
   input Empty${INPUT_SUFFIX} {
     _typesWithoutFieldsAreNotAllowed_: String
   }
@@ -116,7 +119,6 @@ async function testAttrbuteType (test, jsonType, graphQLType, options) {
   type Simple {
     attribute: ${graphQLType}
   }
-  
   input Simple${INPUT_SUFFIX} {
     attribute: ${graphQLType}
   }
@@ -170,6 +172,46 @@ test('array attributes', async function (test) {
   `;
 
   await testConversion(test, simpleType, 'Array', expectedType);
+});
+
+test('object attribute', async function (test) {
+  const simpleType = {
+    id: 'Object',
+    type: 'object',
+    properties: {
+      attribute: {
+        type: 'object',
+        properties: {
+          firstField: {
+            type: 'integer'
+          },
+          secondField: {
+            type: 'integer'
+          }
+        }
+      }
+    }
+  };
+
+  const expectedType = `
+  type ObjectAttribute {
+    firstField: Int
+    secondField: Int
+  }
+  input ObjectAttribute${INPUT_SUFFIX} {
+    firstField: Int
+    secondField: Int
+  }
+  type Object {
+    attribute: ObjectAttribute
+  }
+
+  input Object${INPUT_SUFFIX} {
+    attribute: ObjectAttribute${INPUT_SUFFIX}
+  }
+  `;
+
+  await testConversion(test, simpleType, 'Object', expectedType);
 });
 
 test('required attributes', async function (test) {
