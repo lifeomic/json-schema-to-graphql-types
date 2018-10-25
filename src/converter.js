@@ -57,6 +57,14 @@ function buildEnumType (context, attributeName, enumValues) {
 }
 
 function mapType (context, attributeDefinition, attributeName, buildingInputType) {
+  if (attributeDefinition.type === 'object') {
+    const name = uppercamelcase(`${attributeName}${buildingInputType ? INPUT_SUFFIX : ''}`);
+    const fields = fieldsFromSchema(context, attributeName, attributeDefinition, buildingInputType);
+    return buildingInputType
+      ? new GraphQLInputObjectType({name, fields})
+      : new GraphQLObjectType({name, fields});
+  }
+
   if (attributeDefinition.type === 'array') {
     const elementType = mapType(context, attributeDefinition.items, attributeName, buildingInputType);
     if (elementType === DROP_ATTRIBUTE_MARKER) {
@@ -105,16 +113,7 @@ function fieldsFromSchema (context, parentTypeName, schema, buildingInputType) {
 
   const fields = mapValues(schema.properties, function (attributeDefinition, attributeName) {
     const qualifiedAttributeName = `${parentTypeName}.${attributeName}`;
-    let type;
-    if (attributeDefinition.type === 'object') {
-      const name = uppercamelcase(`${qualifiedAttributeName}${buildingInputType ? INPUT_SUFFIX : ''}`);
-      const fields = fieldsFromSchema(context, qualifiedAttributeName, attributeDefinition, buildingInputType);
-      type = buildingInputType
-        ? new GraphQLInputObjectType({name, fields})
-        : new GraphQLObjectType({name, fields});
-    } else {
-      type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
-    }
+    const type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
     const modifiedType = includes(schema.required, attributeName) ? GraphQLNonNull(type) : type;
     return {type: modifiedType};
   });

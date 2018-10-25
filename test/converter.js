@@ -659,7 +659,3 @@ test('map switch schemas to unions', async function (test) {
   convert(context, parentType);
   await testConversion(test, childType, 'Child', expectedType, context);
 });
-
-module.exports = {
-  compareSchemas
-};
