@@ -739,3 +739,103 @@ test('definitions refs', async function (test) {
   const context = newContext();
   await testConversion(test, type, 'Ref', expectedType, context);
 });
+
+test('oneOf', async function (test) {
+  const type = {
+    id: 'OneOf',
+    type: 'object',
+    properties: {
+      anAttribute: { type: 'string' },
+      attribute: {
+        oneOf: [
+          {
+            type: 'object',
+            properties: {
+              first: { type: 'string' }
+            }
+          },
+          {
+            type: 'object',
+            properties: {
+              second: { type: 'string' }
+            }
+          }
+        ]
+      }
+    }
+  };
+
+  const expectedType = `
+    type OneOfAttributeSwitch0 {
+      first: String
+    }
+    type OneOfAttributeSwitch1 {
+      second: String
+    }
+    union OneOfAttribute = OneOfAttributeSwitch0 | OneOfAttributeSwitch1
+    type OneOf {
+      anAttribute: String
+      attribute: OneOfAttribute
+    }
+    input OneOfIn {
+      anAttribute: String
+    }
+  `;
+
+  const context = newContext();
+  await testConversion(test, type, 'OneOf', expectedType, context);
+});
+
+test('oneOf $ref', async function (test) {
+  const type = {
+    id: 'OneOf',
+    type: 'object',
+    definitions: {
+      first: {
+        type: 'object',
+        properties: {
+          first: { type: 'string' }
+        }
+      },
+      second: {
+        type: 'object',
+        properties: {
+          second: { type: 'string' }
+        }
+      }
+    },
+    properties: {
+      anAttribute: { type: 'string' },
+      attribute: {
+        oneOf: [
+          {
+            $ref: '#/definitions/first'
+          },
+          {
+            $ref: '#/definitions/second'
+          }
+        ]
+      }
+    }
+  };
+
+  const expectedType = `
+    type DefinitionFirst {
+      first: String
+    }
+    type DefinitionSecond {
+      second: String
+    }
+    union OneOfAttribute = DefinitionFirst | DefinitionSecond
+    type OneOf {
+      anAttribute: String
+      attribute: OneOfAttribute
+    }
+    input OneOfIn {
+      anAttribute: String
+    }
+  `;
+
+  const context = newContext();
+  await testConversion(test, type, 'OneOf', expectedType, context);
+});

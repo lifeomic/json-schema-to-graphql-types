@@ -143,6 +143,10 @@ function mapType (context, attributeDefinition, attributeName, buildingInputType
     return referencedType;
   }
 
+  if (attributeDefinition.switch || attributeDefinition.oneOf) {
+    return buildUnionType(context, attributeName, attributeDefinition, buildingInputType);
+  }
+
   return mapBasicAttributeType(attributeDefinition.type, attributeName);
 }
 
@@ -156,6 +160,27 @@ function registerDefinitionTypes (context, schema, buildingInputType) {
   }
 }
 
+function buildUnionType (context, typeName, schema, buildingInputType) {
+  if (buildingInputType) return DROP_ATTRIBUTE_MARKER;
+  let union;
+  let getElement;
+  if (schema.switch) {
+    union = schema.switch;
+    getElement = switchCase => switchCase.then;
+  } else {
+    union = schema.oneOf;
+    getElement = element => element;
+  }
+  return new GraphQLUnionType({
+    name: uppercamelcase(typeName),
+    types: () => {
+      return map(union, function (unionElement, caseIndex) {
+        return mapType(context, getElement(unionElement), `${typeName}.switch${caseIndex}`);
+      });
+    }
+  });
+}
+
 function buildRootType (context, typeName, schema) {
   registerDefinitionTypes(context, schema);
   registerDefinitionTypes(context, schema, true);
@@ -165,15 +190,8 @@ function buildRootType (context, typeName, schema) {
   return {input, output};
 }
 
-function buildUnionType (context, typeName, schema) {
-  const output = new GraphQLUnionType({
-    name: typeName,
-    types: () => {
-      return map(schema.switch, function (switchCase, caseIndex) {
-        return mapType(context, switchCase.then, `${typeName}.switch[${caseIndex}]`);
-      });
-    }
-  });
+function buildRootUnionType (context, typeName, schema) {
+  const output = buildUnionType(context, typeName, schema);
 
   // There are no input union types in GraphQL
   // https://github.com/facebook/graphql/issues/488
@@ -183,7 +201,7 @@ function buildUnionType (context, typeName, schema) {
 function convert (context, schema) {
   const typeName = schema.id;
 
-  const typeBuilder = schema.switch ? buildUnionType : buildRootType;
+  const typeBuilder = schema.switch ? buildRootUnionType : buildRootType;
   const {input, output} = typeBuilder(context, typeName, schema);
 
   context.types.set(typeName, output);
