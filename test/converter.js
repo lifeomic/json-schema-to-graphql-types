@@ -174,6 +174,44 @@ test('array attributes', async function (test) {
   await testConversion(test, simpleType, 'Array', expectedType);
 });
 
+test('array of objects', async function (test) {
+  const simpleType = {
+    id: 'Array',
+    type: 'object',
+    properties: {
+      attribute: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            firstAttribute: {
+              type: 'integer'
+            }
+          }
+        }
+      }
+    }
+  };
+
+  const expectedType = `
+    type ArrayAttributeItem {
+      firstAttribute: Int
+    }
+    type Array {
+      attribute: [ArrayAttributeItem!]
+    }
+
+    input ArrayAttributeItem${INPUT_SUFFIX} {
+      firstAttribute: Int
+    }
+    input Array${INPUT_SUFFIX} {
+      attribute: [ArrayAttributeItem${INPUT_SUFFIX}!]
+    }
+  `;
+
+  await testConversion(test, simpleType, 'Array', expectedType);
+});
+
 test('object attribute', async function (test) {
   const simpleType = {
     id: 'Object',
@@ -658,4 +696,46 @@ test('map switch schemas to unions', async function (test) {
   convert(context, unionType);
   convert(context, parentType);
   await testConversion(test, childType, 'Child', expectedType, context);
+});
+
+test('definitions refs', async function (test) {
+  const type = {
+    id: 'Ref',
+    type: 'object',
+    definitions: {
+      otherType: {
+        type: 'object',
+        properties: {
+          attribute: {
+            type: 'string'
+          }
+        }
+      }
+    },
+    properties: {
+      attribute: {
+        $ref: '#/definitions/otherType'
+      }
+    }
+  };
+
+  const expectedType = `
+  type DefinitionOtherType {
+    attribute: String
+  }
+
+  input DefinitionOtherType${INPUT_SUFFIX} {
+    attribute: String
+  }
+
+  type Ref {
+    attribute: DefinitionOtherType
+  }
+
+  input Ref${INPUT_SUFFIX} {
+    attribute: DefinitionOtherType${INPUT_SUFFIX}
+  }`;
+
+  const context = newContext();
+  await testConversion(test, type, 'Ref', expectedType, context);
 });
