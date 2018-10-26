@@ -67,37 +67,26 @@ function buildEnumType (context, attributeName, enumValues) {
   return enumType;
 }
 
-// Handles any custom object types. It will create a GraphQLInputObjectType/GraphQLObjectType, and
-// will map on all the properties of the object with mapType to match to the corresponding graphql
-// type. It also handles the required/nonNull types
-function objectFromSchema (context, schema, typeName, buildingInputType) {
-  function getFields () {
-    let fields;
-    if (isEmpty(schema.properties)) {
-      fields = {
-        _typesWithoutFieldsAreNotAllowed_: {
-          type: GraphQLString
-        }
-      };
-    } else {
-      fields = mapValues(schema.properties, function (attributeDefinition, attributeName) {
-        const qualifiedAttributeName = `${typeName}.${attributeName}`;
-        const type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
-
-        const modifiedType = includes(schema.required, attributeName) ? GraphQLNonNull(type) : type;
-        return {type: modifiedType};
-      });
-    }
-
-    return omitBy(fields, {type: DROP_ATTRIBUTE_MARKER});
+// Handles any custom object types fields. It will map on all the properties of the object with
+// mapType to match to the corresponding graphql type. It also handles the required/nonNull types
+function getObjectFields (context, schema, typeName, buildingInputType) {
+  if (isEmpty(schema.properties)) {
+    return {
+      _typesWithoutFieldsAreNotAllowed_: {
+        type: GraphQLString
+      }
+    };
   }
+  return omitBy(
+    mapValues(schema.properties, function (attributeDefinition, attributeName) {
+      const qualifiedAttributeName = `${typeName}.${attributeName}`;
+      const type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
 
-  const name = getItemTypeName(typeName, buildingInputType);
-  // getFields need to be called lazily, since some types might not be available at the creation of
-  // the object (with circular refs for instance)
-  return buildingInputType
-    ? new GraphQLInputObjectType({name, fields: () => getFields()})
-    : new GraphQLObjectType({name, fields: () => getFields()});
+      const modifiedType = includes(schema.required, attributeName) ? GraphQLNonNull(type) : type;
+      return {type: modifiedType};
+    }),
+    {type: DROP_ATTRIBUTE_MARKER}
+  );
 }
 
 // Matches any json schema type to the graphql corresponding type (including recursive types)
@@ -112,7 +101,19 @@ function mapType (context, attributeDefinition, attributeName, buildingInputType
   }
 
   if (attributeDefinition.type === 'object') {
-    return objectFromSchema(context, attributeDefinition, attributeName, buildingInputType);
+    const name = getItemTypeName(attributeName, buildingInputType);
+    // getFields need to be called lazily, since some types might not be available at the creation of
+    // the object (with circular refs for instance)
+    return buildingInputType
+      ? new GraphQLInputObjectType({
+        name,
+        fields: () => getObjectFields(context, attributeDefinition, attributeName, buildingInputType)
+      })
+      : new GraphQLObjectType({
+        name,
+        fields: () => getObjectFields(context, attributeDefinition, attributeName, buildingInputType)
+      });
+    // return objectFromSchema(context, attributeDefinition, attributeName, buildingInputType);
   }
   const enumValues = attributeDefinition.enum;
   if (enumValues) {
