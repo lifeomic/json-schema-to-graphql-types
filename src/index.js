@@ -70,7 +70,6 @@ function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
       return result;
     }
   }) : null;
-
   const schema = new GraphQLSchema({query: queryType, mutation: mutationType});
   return schema;
 }
