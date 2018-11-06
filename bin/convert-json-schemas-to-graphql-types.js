@@ -18,8 +18,8 @@ async function convertDir (dir, asJs) {
     schemas.push(schemaContents);
   }
 
-  const schema = jsonSchemasToGraphqlSchema(schemas);
-  const printed = printSchema(schema);
+  const schema = jsonSchemasToGraphqlSchema(schemas); // MH input: array of json-schemas; output: one graphQLSchema
+  const printed = printSchema(schema); // MH converts graphQLSchema into readable string
 
   // Strip out the Query type because it's not needed
   const withoutQuery = printed.replace(/^type Query {[^}]*}/m, '');
@@ -42,12 +42,6 @@ async function run () {
 
 run()
   .catch(function (e) {
-    if (e.specific) {
-      console.error(e.displayMessage);
-      console.group('Original Error:');
-      console.error(e);
-    } else {
-      console.error(e);
-    }
+    console.error(e);
     process.exitCode = 1;
   });

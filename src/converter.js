@@ -11,6 +11,7 @@ const includes = require('lodash/includes');
 const uppercamelcase = require('uppercamelcase');
 const camelcase = require('camelcase');
 const escodegen = require('escodegen');
+const validators = require('./error-handling');
 
 const INPUT_SUFFIX = 'In';
 const DEFINITION_PREFIX = 'Definition';
@@ -148,12 +149,13 @@ function mapType (context, attributeDefinition, attributeName, buildingInputType
 
 function registerDefinitionTypes (context, schema, buildingInputType) {
   if (schema.definitions) {
+    validators.validateDefinitions(schema.definitions);
     const typeMap = buildingInputType ? context.inputs : context.types;
-    mapValues(schema.definitions, function (definition, definitionName) {
-      const itemName = uppercamelcase(`${DEFINITION_PREFIX}.${definitionName}`);
-      typeMap.set(getItemTypeName(itemName, buildingInputType), mapType(context, definition, itemName, buildingInputType));
-    });
-  }
+    mapValues(schema.definitions, function (definition, definitionName) { // MH {definitionName: definition}
+      const itemName = uppercamelcase(`${DEFINITION_PREFIX}.${definitionName}`); // MH takes away _ - . Example: DefinitionTrick
+      typeMap.set(getItemTypeName(itemName, buildingInputType), mapType(context, definition, itemName, buildingInputType)); // MH adds map value in context ... => ...
+    }); // MH buildingInputType is undefined first time, then true the second time
+  } // MH typeMap.set('typeName OR typeNameIn', '')
 }
 
 function buildRootType (context, typeName, schema) {
@@ -181,9 +183,10 @@ function buildUnionType (context, typeName, schema) {
 }
 
 function convert (context, schema) {
-  const typeName = schema.id;
+  const typeName = schema.id ? schema.id : schema['$id'];
+  validators.validateTopLevelId(typeName, schema);
 
-  const typeBuilder = schema.switch ? buildUnionType : buildRootType;
+  const typeBuilder = schema.switch ? buildUnionType : buildRootType; // MH if it has a switch key or not. Mine use buildRootType
   const {input, output} = typeBuilder(context, typeName, schema);
 
   context.types.set(typeName, output);

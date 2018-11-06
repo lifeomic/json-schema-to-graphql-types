@@ -1,6 +1,6 @@
 const { GraphQLSchema, GraphQLObjectType, GraphQLString } = require('graphql');
 
-const {newContext, convert, UnknownTypeReference} = require('./converter');
+const { newContext, convert, UnknownTypeReference } = require('./converter');
 
 function convertSchemas (context, schemas) {
   const referencedUnknownType = [];
@@ -10,12 +10,13 @@ function convertSchemas (context, schemas) {
       convert(context, schema);
       successful++;
     } catch (error) {
-      console.error(error);
       if (error instanceof UnknownTypeReference) {
+        console.error(error);
         referencedUnknownType.push(schema);
         continue;
       }
-      throw new Error(`Failed to convert schema ${schema.id}: ${error}`);
+
+      throw error;
     }
   }
 
@@ -33,8 +34,19 @@ function convertSchemas (context, schemas) {
 
 function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
   const context = newContext();
+  // MH contextBefore = {
+  //   types: new Map(),
+  //   inputs: new Map(),
+  //   enumTypes: new Map(),
+  //   enumMaps: new Map()
+  // };
   convertSchemas(context, schemas);
-
+  // MH contextAfter = {
+  //   types: Map { 'FLERP' => Flerp, 'DogId' => DogId },
+  //   inputs: Map { 'FLERP' => FlerpIn, 'DogId' => DogIdIn },
+  //   enumTypes: Map {},
+  //   enumMaps: Map {}
+  // }
   const queryType = new GraphQLObjectType({
     name: 'Query',
     fields: () => {
@@ -45,7 +57,7 @@ function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
         // protected and none of the attributes will be used as functions
         // just a map of attribute to values.
         // eslint-disable-next-line security/detect-object-injection
-        result[name] = {type};
+        result[name] = {type}; // MH {FLERP: Flerp, DogId: DogId}
       }
       return result;
     }
@@ -70,7 +82,7 @@ function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
       return result;
     }
   }) : null;
-  const schema = new GraphQLSchema({query: queryType, mutation: mutationType});
+  const schema = new GraphQLSchema({query: queryType, mutation: mutationType}); // MH {query: GraphQLObjectType(name: ..., fields: ...), mutation: GraphQLObjectType(name: ..., fields: ...)}
   return schema;
 }
 module.exports = {
