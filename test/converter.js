@@ -640,6 +640,7 @@ test('map switch schemas to unions', async function (test) {
 
   const unionType = {
     id: 'ParentOrChild',
+    type: 'object',
     switch: [
       {
         if: {
