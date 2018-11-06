@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs-extra');
 
+// Directory-name must exist, and Directory-name must point to valid directory
 function validatePathName (dir) {
   return fs.readdir(dir)
     .then(function (res) {
@@ -10,15 +11,15 @@ function validatePathName (dir) {
       if (err.name === 'TypeError [ERR_INVALID_ARG_TYPE]') {
         err.subMessage = `Must include a directory name in the command 'convert-json-schemas-to-graphql-types <directory-name>'`;
       } else if (err.errno === -2) {
-        err.subMessage = `The path name '${err.path}' is not a valid directory`;
+        err.subMessage = `The path name "${err.path}" is not a valid directory`;
       }
 
       throw err;
     });
 }
 
+// Each file must have .json extension, and each file must be syntactically correct, and no file is an array of schema
 function validateJSONSyntax (file, dir) {
-  // Files must be .json
   if (path.extname(file) !== '.json') {
     const err = new TypeError(`All files in directory must have .json extension`);
     err.subLocation = `${dir + file}`;
@@ -45,6 +46,7 @@ function validateJSONSyntax (file, dir) {
     });
 }
 
+// Schema must contain an id or $id key to give it a graphQL type name, and top-level schema must be object type
 function validateTopLevelId (typeName, schema) {
   if (!typeName) {
     const err = new ReferenceError(`JSON-Schema must have a key 'id' or '$id' to identify the top-level schema`);
@@ -59,6 +61,7 @@ function validateTopLevelId (typeName, schema) {
   }
 }
 
+// If there are definitions, each definition must have a type defined
 function validateDefinitions (definitions) {
   for (const key in definitions) {
     if (!definitions[key].type) {

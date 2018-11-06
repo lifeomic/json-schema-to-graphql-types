@@ -34,19 +34,9 @@ function convertSchemas (context, schemas) {
 
 function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
   const context = newContext();
-  // MH contextBefore = {
-  //   types: new Map(),
-  //   inputs: new Map(),
-  //   enumTypes: new Map(),
-  //   enumMaps: new Map()
-  // };
+
   convertSchemas(context, schemas);
-  // MH contextAfter = {
-  //   types: Map { 'FLERP' => Flerp, 'DogId' => DogId },
-  //   inputs: Map { 'FLERP' => FlerpIn, 'DogId' => DogIdIn },
-  //   enumTypes: Map {},
-  //   enumMaps: Map {}
-  // }
+
   const queryType = new GraphQLObjectType({
     name: 'Query',
     fields: () => {
@@ -57,7 +47,7 @@ function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
         // protected and none of the attributes will be used as functions
         // just a map of attribute to values.
         // eslint-disable-next-line security/detect-object-injection
-        result[name] = {type}; // MH {FLERP: Flerp, DogId: DogId}
+        result[name] = {type};
       }
       return result;
     }
@@ -82,7 +72,7 @@ function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
       return result;
     }
   }) : null;
-  const schema = new GraphQLSchema({query: queryType, mutation: mutationType}); // MH {query: GraphQLObjectType(name: ..., fields: ...), mutation: GraphQLObjectType(name: ..., fields: ...)}
+  const schema = new GraphQLSchema({query: queryType, mutation: mutationType});
   return schema;
 }
 module.exports = {

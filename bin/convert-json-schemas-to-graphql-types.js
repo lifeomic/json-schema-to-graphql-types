@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-const fs = require('fs-extra');
-const path = require('path');
 const yargs = require('yargs');
 const { printSchema } = require('graphql');
 const { jsonSchemasToGraphqlSchema } = require('../src/index');
@@ -18,8 +16,8 @@ async function convertDir (dir, asJs) {
     schemas.push(schemaContents);
   }
 
-  const schema = jsonSchemasToGraphqlSchema(schemas); // MH input: array of json-schemas; output: one graphQLSchema
-  const printed = printSchema(schema); // MH converts graphQLSchema into readable string
+  const schema = jsonSchemasToGraphqlSchema(schemas);
+  const printed = printSchema(schema);
 
   // Strip out the Query type because it's not needed
   const withoutQuery = printed.replace(/^type Query {[^}]*}/m, '');
