@@ -9,7 +9,9 @@ async function validatePathName (dir) {
   } catch (err) {
     if (err.name === 'TypeError [ERR_INVALID_ARG_TYPE]') {
       err.subMessage = `Must include a directory name in the command 'convert-json-schemas-to-graphql-types <directory-name>'`;
-    } else if (err.errno === -2) {
+    }
+
+    if (err.errno === -2) {
       err.subMessage = `The path name "${err.path}" is not a valid directory`;
     }
 
@@ -21,7 +23,7 @@ async function validatePathName (dir) {
 async function validateJSONSyntax (file, dir) {
   if (path.extname(file) !== '.json') {
     const err = new TypeError(`All files in directory must have .json extension`);
-    err.subLocation = `${dir + file}`;
+    err.subLocation = `${dir}/${file}`;
     throw err;
   }
 
@@ -31,7 +33,7 @@ async function validateJSONSyntax (file, dir) {
     if (JSON.stringify(parsedFileContent).startsWith('[')) {
       const err = new TypeError(`File '${file}' contents cannot start with '[' character`);
       err.subMessage = `Each file must only include only one json-schema, not an array of schema`;
-      err.subLocation = `${dir + file}`;
+      err.subLocation = `${dir}/${file}`;
       throw err;
     }
 
@@ -39,7 +41,7 @@ async function validateJSONSyntax (file, dir) {
   } catch (err) {
     if (err.subMessage) throw err; // Specific error from above
     err.subMessage = `Invalid JSON syntax in file '${file}'`;
-    err.subLocation = `${dir + file}`;
+    err.subLocation = `${dir}/${file}`;
     throw err;
   }
 }

@@ -1,0 +1,9 @@
+{
+  "$id": "DummyData",
+  "type": "object",
+  "properties": {
+    "attribute": {
+      "type": "string"
+    }
+  }
+}

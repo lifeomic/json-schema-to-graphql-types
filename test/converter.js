@@ -1,6 +1,7 @@
 const {test} = require('ava');
 const Ajv = require('ajv');
 const {INPUT_SUFFIX, newContext, convert, UnknownTypeReference, getConvertEnumFromGraphQLCode} = require('../src/converter');
+const validators = require('../src/error-handling');
 const {
   parse, execute, buildSchema, printSchema,
   GraphQLSchema, GraphQLObjectType, introspectionQuery
@@ -250,6 +251,29 @@ test('object attribute', async function (test) {
   `;
 
   await testConversion(test, simpleType, 'Object', expectedType);
+});
+
+test('$id attribute', async function (test) {
+  const simpleType = {
+    '$id': 'Simple',
+    type: 'object',
+    properties: {
+      attribute: {
+        type: 'string'
+      }
+    }
+  };
+
+  const expectedType = `
+  type Simple {
+    attribute: String
+  }
+  input Simple${INPUT_SUFFIX} {
+    attribute: String
+  }
+  `;
+
+  await testConversion(test, simpleType, 'Simple', expectedType);
 });
 
 test('required attributes', async function (test) {
