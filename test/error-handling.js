@@ -13,7 +13,7 @@ test('throws error if no directory specified', async function (test) {
     await validators.validatePathName();
     test.fail('Should have thrown error');
   } catch (err) {
-    test.is(err.name, 'TypeError [ERR_INVALID_ARG_TYPE]');
+    test.is(err.name.startsWith('TypeError'), true);
     test.is(err.subMessage, `Must include a directory name in the command 'convert-json-schemas-to-graphql-types <directory-name>'`);
   }
 });

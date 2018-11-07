@@ -7,7 +7,7 @@ async function validatePathName (dir) {
     const files = await fs.readdir(dir);
     return files;
   } catch (err) {
-    if (err.name === 'TypeError [ERR_INVALID_ARG_TYPE]') {
+    if (err.name.startsWith('TypeError')) {
       err.subMessage = `Must include a directory name in the command 'convert-json-schemas-to-graphql-types <directory-name>'`;
     }
 
