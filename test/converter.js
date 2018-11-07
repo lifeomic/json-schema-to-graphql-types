@@ -1,7 +1,6 @@
 const {test} = require('ava');
 const Ajv = require('ajv');
 const {INPUT_SUFFIX, newContext, convert, UnknownTypeReference, getConvertEnumFromGraphQLCode} = require('../src/converter');
-const validators = require('../src/error-handling');
 const {
   parse, execute, buildSchema, printSchema,
   GraphQLSchema, GraphQLObjectType, introspectionQuery
