@@ -16,6 +16,7 @@ function convertSchemas (context, schemas) {
         continue;
       }
 
+      error.subMessage = error.subMessage ? error.subMessage : `Failed to convert schema ${schema.id}: ${error}`;
       throw error;
     }
   }
