@@ -22,7 +22,7 @@ async function validatePathName (dir) {
 // Each file must have .json extension, and each file must be syntactically correct, and no file is an array of schema
 async function validateJSONSyntax (file, dir) {
   if (path.extname(file) !== '.json') {
-    const err = new TypeError(`All files in directory must have .json extension`);
+    const err = new Error(`All files in directory must have .json extension`);
     err.subLocation = dir.endsWith('/') ? `${dir}${file}` : `${dir}/${file}`;
     throw err;
   }
@@ -31,7 +31,7 @@ async function validateJSONSyntax (file, dir) {
     const fileContent = await fs.readFile(path.join(dir, file));
     const parsedFileContent = JSON.parse(fileContent);
     if (Array.isArray(parsedFileContent)) {
-      const err = new TypeError(`Each file must include only one json-schema, not an array of schema`);
+      const err = new Error(`Each file must include only one json-schema, not an array of schema`);
       err.subMessage = `Failed to convert file '${file}'. It should not be an array.`;
       err.subLocation = dir.endsWith('/') ? `${dir}${file}` : `${dir}/${file}`;
       throw err;
@@ -65,7 +65,7 @@ function validateTopLevelId (typeName, schema) {
 function validateDefinitions (definitions) {
   for (const key in definitions) {
     if (!definitions[key].type) {
-      const err = new SyntaxError(`Each key in definitions must have a declared type`);
+      const err = new Error(`Each key in definitions must have a declared type`);
       err.subLocation = `Definition for "${key}" schema`;
       throw err;
     }
