@@ -183,7 +183,7 @@ function buildUnionType (context, typeName, schema) {
 }
 
 function convert (context, schema) {
-  const typeName = schema.id ? schema.id : schema['$id'];
+  const typeName = schema.id || schema['$id'];
   validators.validateTopLevelId(typeName, schema);
 
   const typeBuilder = schema.switch ? buildUnionType : buildRootType;

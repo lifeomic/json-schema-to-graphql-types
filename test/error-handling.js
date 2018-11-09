@@ -62,8 +62,8 @@ test('throws error if file contains an array of schema', async function (test) {
     await validators.validateJSONSyntax(file, directory);
     test.fail('Should throw error');
   } catch (err) {
-    test.is(err.message, `File '${file}' contents cannot start with '[' character`);
-    test.is(err.subMessage, `Each file must only include only one json-schema, not an array of schema`);
+    test.is(err.message, `Each file must include only one json-schema, not an array of schema`);
+    test.is(err.subMessage, `Failed to convert file '${file}'. It should not be an array.`);
     test.is(err.subLocation, `./test/dummy-data/${file}`);
   }
 
@@ -71,8 +71,8 @@ test('throws error if file contains an array of schema', async function (test) {
     await validators.validateJSONSyntax(file, `${directory}/`);
     test.fail('Should throw error');
   } catch (err) {
-    test.is(err.message, `File '${file}' contents cannot start with '[' character`);
-    test.is(err.subMessage, `Each file must only include only one json-schema, not an array of schema`);
+    test.is(err.message, `Each file must include only one json-schema, not an array of schema`);
+    test.is(err.subMessage, `Failed to convert file '${file}'. It should not be an array.`);
     test.is(err.subLocation, `./test/dummy-data/${file}`);
   }
 });

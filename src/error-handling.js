@@ -30,9 +30,9 @@ async function validateJSONSyntax (file, dir) {
   try {
     const fileContent = await fs.readFile(path.join(dir, file));
     const parsedFileContent = JSON.parse(fileContent);
-    if (JSON.stringify(parsedFileContent).startsWith('[')) {
-      const err = new TypeError(`File '${file}' contents cannot start with '[' character`);
-      err.subMessage = `Each file must only include only one json-schema, not an array of schema`;
+    if (Array.isArray(parsedFileContent)) {
+      const err = new TypeError(`Each file must include only one json-schema, not an array of schema`);
+      err.subMessage = `Failed to convert file '${file}'. It should not be an array.`;
       err.subLocation = dir.endsWith('/') ? `${dir}${file}` : `${dir}/${file}`;
       throw err;
     }
@@ -49,13 +49,13 @@ async function validateJSONSyntax (file, dir) {
 // Schema must contain an id or $id key to give it a graphQL type name, and top-level schema must be object type
 function validateTopLevelId (typeName, schema) {
   if (!typeName) {
-    const err = new ReferenceError(`JSON-Schema must have a key 'id' or '$id' to identify the top-level schema`);
+    const err = new Error(`JSON-Schema must have a key 'id' or '$id' to identify the top-level schema`);
     err.subLocation = `JSON file starting with ${JSON.stringify(schema).substring(0, 25)}...`;
     throw err;
   }
 
   if (schema.type !== 'object') {
-    const err = new SyntaxError(`Top-level type must be 'object', not '${schema.type}'`);
+    const err = new Error(`Top-level type must be 'object', not '${schema.type}'`);
     err.subLocation = `JSON file starting with ${JSON.stringify(schema).substring(0, 25)}...`;
     throw err;
   }
