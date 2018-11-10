@@ -1,6 +1,6 @@
 const { GraphQLSchema, GraphQLObjectType, GraphQLString } = require('graphql');
 
-const {newContext, convert, UnknownTypeReference} = require('./converter');
+const { newContext, convert, UnknownTypeReference } = require('./converter');
 
 function convertSchemas (context, schemas) {
   const referencedUnknownType = [];
@@ -10,12 +10,14 @@ function convertSchemas (context, schemas) {
       convert(context, schema);
       successful++;
     } catch (error) {
-      console.error(error);
       if (error instanceof UnknownTypeReference) {
+        console.error(error);
         referencedUnknownType.push(schema);
         continue;
       }
-      throw new Error(`Failed to convert schema ${schema.id}: ${error}`);
+
+      error.subMessage = error.subMessage ? error.subMessage : `Failed to convert schema ${schema.id}: ${error}`;
+      throw error;
     }
   }
 
@@ -33,6 +35,7 @@ function convertSchemas (context, schemas) {
 
 function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
   const context = newContext();
+
   convertSchemas(context, schemas);
 
   const queryType = new GraphQLObjectType({
@@ -70,7 +73,6 @@ function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
       return result;
     }
   }) : null;
-
   const schema = new GraphQLSchema({query: queryType, mutation: mutationType});
   return schema;
 }

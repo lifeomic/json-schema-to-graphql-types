@@ -11,6 +11,7 @@ const includes = require('lodash/includes');
 const uppercamelcase = require('uppercamelcase');
 const camelcase = require('camelcase');
 const escodegen = require('escodegen');
+const validators = require('./error-handling');
 
 const INPUT_SUFFIX = 'In';
 const DEFINITION_PREFIX = 'Definition';
@@ -148,6 +149,7 @@ function mapType (context, attributeDefinition, attributeName, buildingInputType
 
 function registerDefinitionTypes (context, schema, buildingInputType) {
   if (schema.definitions) {
+    validators.validateDefinitions(schema.definitions);
     const typeMap = buildingInputType ? context.inputs : context.types;
     mapValues(schema.definitions, function (definition, definitionName) {
       const itemName = uppercamelcase(`${DEFINITION_PREFIX}.${definitionName}`);
@@ -181,7 +183,8 @@ function buildUnionType (context, typeName, schema) {
 }
 
 function convert (context, schema) {
-  const typeName = schema.id;
+  const typeName = schema.id || schema['$id'];
+  validators.validateTopLevelId(typeName, schema);
 
   const typeBuilder = schema.switch ? buildUnionType : buildRootType;
   const {input, output} = typeBuilder(context, typeName, schema);
