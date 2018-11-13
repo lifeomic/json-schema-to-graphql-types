@@ -1,7 +1,7 @@
 const { GraphQLSchema, GraphQLObjectType, GraphQLString } = require('graphql');
 const uppercamelcase = require('uppercamelcase');
 
-const { newContext, convert, UnknownTypeReference } = require('./converter');
+const { newContext, convert, UnknownTypeReference, normalizeTypeName } = require('./converter');
 
 function convertSchemas (context, schemas) {
   const referencedUnknownType = [];
@@ -61,8 +61,7 @@ function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
       const result = {};
       for (const [name, type] of context.inputs.entries()) {
         // We must normalize the name here, to match the normalized type names of each schema
-        const removedExtension = name.replace('.json', '').replace('schema', '');
-        let normalizedName = uppercamelcase(removedExtension.slice(removedExtension.lastIndexOf('/') + 1, removedExtension.length));
+        let normalizedName = normalizeTypeName(name);
         if (normalizedName.endsWith('In')) normalizedName = normalizedName.slice(0, normalizedName.lastIndexOf('In'));
 
         // It's ok to ignore the object injection attack here because

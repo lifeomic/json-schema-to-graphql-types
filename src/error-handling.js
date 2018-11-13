@@ -61,6 +61,14 @@ function validateTopLevelId (typeName, schema) {
   }
 }
 
+function validateTypeName (typeName, normalizedTypeName) {
+  if (!/^[_a-zA-Z][_a-zA-Z0-9]*$/.test(normalizedTypeName)) {
+    const err = new Error(`The id of ${typeName} does not convert into a valid GraphQL type name`);
+    err.subMessage = `The ID or .json file-name must match the regular expression /^[_a-zA-Z][_a-zA-Z0-9]*$/ but ${normalizedTypeName} does not`;
+    throw err;
+  }
+}
+
 // If there are definitions, each definition must have a type defined
 function validateDefinitions (definitions) {
   for (const key in definitions) {
@@ -76,5 +84,6 @@ module.exports = {
   validatePathName,
   validateJSONSyntax,
   validateTopLevelId,
+  validateTypeName,
   validateDefinitions
 };

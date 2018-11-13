@@ -18,16 +18,20 @@ const DEFINITION_PREFIX = 'Definition';
 const DROP_ATTRIBUTE_MARKER = Symbol('A marker to drop the attributes');
 
 const referencePrefix = '#/definitions/';
+
+function normalizeTypeName (typeName) {
+  const removedExtension = typeName.replace('.json', '').replace('schema', '');
+  const normalizedTypeName = uppercamelcase(removedExtension.slice(removedExtension.lastIndexOf('/') + 1, removedExtension.length));
+  validators.validateTypeName(typeName, normalizedTypeName);
+  return normalizedTypeName;
+}
+
 function getItemTypeName (typeName, buildingInputType) {
   // If any type-name references an external file or URI, normalize the type name to be valid GraphQL
-  if (typeName.endsWith('.json') || typeName.endsWith('.json/') || typeName.startsWith('http')) {
-    const removedExtension = typeName.replace('.json', '').replace('schema', '');
-    const normalizedTypeName = uppercamelcase(removedExtension.slice(removedExtension.lastIndexOf('/') + 1, removedExtension.length));
-    return `${normalizedTypeName}${buildingInputType ? INPUT_SUFFIX : ''}`;
-  }
-
-  return uppercamelcase(`${typeName}${buildingInputType ? INPUT_SUFFIX : ''}`);
+  const normalizedTypeName = normalizeTypeName(typeName);
+  return `${normalizedTypeName}${buildingInputType ? INPUT_SUFFIX : ''}`;
 }
+
 function getReferenceName (referenceName, buildingInputType) {
   return referenceName.startsWith(referencePrefix)
     ? getItemTypeName(`${DEFINITION_PREFIX}.${referenceName.split(referencePrefix)[1]}`, buildingInputType)
@@ -277,5 +281,6 @@ module.exports = {
   UnknownTypeReference,
   newContext,
   convert,
-  getConvertEnumFromGraphQLCode
+  getConvertEnumFromGraphQLCode,
+  normalizeTypeName
 };
