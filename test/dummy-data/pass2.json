@@ -1,0 +1,9 @@
+{
+  "$id": "http://some-external-uri.schema.json",
+  "type": "object",
+  "properties": {
+    "attribute": {
+      "type": "string"
+    }
+  }
+}
