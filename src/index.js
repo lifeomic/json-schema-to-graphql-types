@@ -1,5 +1,4 @@
 const { GraphQLSchema, GraphQLObjectType, GraphQLString } = require('graphql');
-const uppercamelcase = require('uppercamelcase');
 
 const { newContext, convert, UnknownTypeReference, normalizeTypeName } = require('./converter');
 

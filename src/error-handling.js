@@ -4,6 +4,7 @@ const fs = require('fs-extra');
 // Directory-name must exist, and Directory-name must point to valid directory
 async function validatePathName (dir) {
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const files = await fs.readdir(dir);
     return files;
   } catch (err) {
@@ -28,6 +29,7 @@ async function validateJSONSyntax (file, dir) {
   }
 
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const fileContent = await fs.readFile(path.join(dir, file));
     const parsedFileContent = JSON.parse(fileContent);
     if (Array.isArray(parsedFileContent)) {
@@ -72,6 +74,7 @@ function validateTypeName (typeName, normalizedTypeName) {
 // If there are definitions, each definition must have a type defined
 function validateDefinitions (definitions) {
   for (const key in definitions) {
+    // eslint-disable-next-line security/detect-object-injection
     if (!definitions[key].type) {
       const err = new Error(`Each key in definitions must have a declared type`);
       err.subLocation = `Definition for "${key}" schema`;
