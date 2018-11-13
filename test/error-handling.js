@@ -1,4 +1,5 @@
 const { test } = require('ava');
+
 const validators = require('../src/error-handling');
 const dummyData = require('./dummy-data/pass.json');
 
@@ -128,6 +129,29 @@ test('throws error if top-level type is not object', function (test) {
     test.is(err.subLocation, `JSON file starting with ${JSON.stringify(badSchema).substring(0, 25)}...`);
   }
 });
+
+test('throws error if a normalized type name is not a valid GraphQL type name', function (test) {
+  const badTypeName = 'boo(k';
+  const normalizedBadTypeName = 'Boo(k';
+  try {
+    validators.validateTypeName(badTypeName, normalizedBadTypeName);
+    test.fail('Should throw error');
+  } catch (err) {
+    test.is(err.message, `The id of ${badTypeName} does not convert into a valid GraphQL type name`);
+    test.is(err.subMessage, `The ID or .json file-name must match the regular expression /^[_a-zA-Z][_a-zA-Z0-9]*$/ but ${normalizedBadTypeName} does not`);
+  }
+});
+
+// test.only('throws error if id cannot be converted into valid GraphQL type name', function (test) {
+//   const badId = 'boo(k';
+//   try {
+//     normalizeTypeName(badId);
+//     test.fail('Should throw error');
+//   } catch (err) {
+//     test.is(err.message, `The id of ${badId} does not convert into a valid GraphQL type name`);
+//     test.is(err.subMessage, 'The ID or .json file-name must match the regular expression /^[_a-zA-Z][_a-zA-Z0-9]*$/ but Boo(k does not');
+//   }
+// });
 
 test('throws error if definitions have no type defined', function (test) {
   const badSchema = {

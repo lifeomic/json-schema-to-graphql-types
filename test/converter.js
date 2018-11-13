@@ -328,6 +328,25 @@ test('Unknown $ref attribute type', async function (test) {
   await test.throws(schema, UnknownTypeReference);
 });
 
+test('Unknown $ref attribute type from external URI', async function (test) {
+  const simpleType = {
+    id: 'Ref',
+    type: 'object',
+    properties: {
+      attribute: {
+        $ref: 'http://UnknownType.schema.json'
+      }
+    }
+  };
+
+  const expectedType = `type Ref {
+    attribute: UnknownType
+  }`;
+
+  const schema = testConversion(test, simpleType, 'Ref', expectedType);
+  await test.throws(schema, UnknownTypeReference);
+});
+
 test('Known $ref attribute type', async function (test) {
   const otherType = {
     id: 'OtherType',
