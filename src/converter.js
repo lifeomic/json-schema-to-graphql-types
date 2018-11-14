@@ -20,14 +20,19 @@ const DROP_ATTRIBUTE_MARKER = Symbol('A marker to drop the attributes');
 const referencePrefix = '#/definitions/';
 
 function normalizeTypeName (typeName) {
-  const removedExtension = typeName.replace('.json', '').replace('schema', '');
-  const normalizedTypeName = uppercamelcase(removedExtension.slice(removedExtension.lastIndexOf('/') + 1, removedExtension.length));
+  /* If the typeName is a URI, this will extract the
+     file-name between the last '/' and '.json' extension
+     If the typeName is not a URI, this will only camelCase it */
+  const normalizedTypeName = uppercamelcase(
+    typeName
+      .slice(typeName.lastIndexOf('/') + 1, typeName.length)
+      .replace(/(\.schema)?\.json/g, '')
+  );
   validators.validateTypeName(typeName, normalizedTypeName);
   return normalizedTypeName;
 }
 
 function getItemTypeName (typeName, buildingInputType) {
-  // If any type-name references an external file or URI, normalize the type name to be valid GraphQL
   const normalizedTypeName = normalizeTypeName(typeName);
   return `${normalizedTypeName}${buildingInputType ? INPUT_SUFFIX : ''}`;
 }

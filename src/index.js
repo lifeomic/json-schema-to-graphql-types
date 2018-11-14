@@ -60,8 +60,7 @@ function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
       const result = {};
       for (const [name, type] of context.inputs.entries()) {
         // We must normalize the name here, to match the normalized type names of each schema
-        let normalizedName = normalizeTypeName(name);
-        if (normalizedName.endsWith('In')) normalizedName = normalizedName.slice(0, normalizedName.lastIndexOf('In'));
+        const normalizedName = normalizeTypeName(name);
 
         // It's ok to ignore the object injection attack here because
         // the object being edited does not contain any private data to be
