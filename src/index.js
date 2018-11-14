@@ -1,6 +1,6 @@
 const { GraphQLSchema, GraphQLObjectType, GraphQLString } = require('graphql');
 
-const { newContext, convert, UnknownTypeReference } = require('./converter');
+const { newContext, convert, UnknownTypeReference, normalizeTypeName } = require('./converter');
 
 function convertSchemas (context, schemas) {
   const referencedUnknownType = [];
@@ -59,12 +59,15 @@ function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
     fields: () => {
       const result = {};
       for (const [name, type] of context.inputs.entries()) {
+        // We must normalize the name here, to match the normalized type names of each schema
+        const normalizedName = normalizeTypeName(name);
+
         // It's ok to ignore the object injection attack here because
         // the object being edited does not contain any private data to be
         // protected and none of the attributes will be used as functions
         // just a map of attribute to values.
         // eslint-disable-next-line security/detect-object-injection
-        result[name] = {
+        result[normalizedName] = {
           type: GraphQLString,
           args: {input: {type}}
         };

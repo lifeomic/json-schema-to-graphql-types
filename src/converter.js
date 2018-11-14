@@ -18,9 +18,25 @@ const DEFINITION_PREFIX = 'Definition';
 const DROP_ATTRIBUTE_MARKER = Symbol('A marker to drop the attributes');
 
 const referencePrefix = '#/definitions/';
-function getItemTypeName (typeName, buildingInputType) {
-  return uppercamelcase(`${typeName}${buildingInputType ? INPUT_SUFFIX : ''}`);
+
+function normalizeTypeName (typeName) {
+  /* If the typeName is a URI, this will extract the
+     file-name between the last '/' and '.json' extension
+     If the typeName is not a URI, this will only camelCase it */
+  const normalizedTypeName = uppercamelcase(
+    typeName
+      .slice(typeName.lastIndexOf('/') + 1, typeName.length)
+      .replace(/(\.schema)?\.json/g, '')
+  );
+  validators.validateTypeName(typeName, normalizedTypeName);
+  return normalizedTypeName;
 }
+
+function getItemTypeName (typeName, buildingInputType) {
+  const normalizedTypeName = normalizeTypeName(typeName);
+  return `${normalizedTypeName}${buildingInputType ? INPUT_SUFFIX : ''}`;
+}
+
 function getReferenceName (referenceName, buildingInputType) {
   return referenceName.startsWith(referencePrefix)
     ? getItemTypeName(`${DEFINITION_PREFIX}.${referenceName.split(referencePrefix)[1]}`, buildingInputType)
@@ -139,7 +155,9 @@ function mapType (context, attributeDefinition, attributeName, buildingInputType
       if (context.types.get(typeReferenceName) instanceof GraphQLUnionType && buildingInputType) {
         return DROP_ATTRIBUTE_MARKER;
       }
-      throw new UnknownTypeReference(`The referenced type ${typeReferenceName} (${buildingInputType}) is unknown in ${attributeName}`);
+      const err = new UnknownTypeReference(`The referenced type ${typeReferenceName} (${buildingInputType || 'Not Input Type'}) is unknown in ${attributeName}`);
+      if (typeReferenceName.startsWith('http')) err.subMessage = 'Cannot reference schema from external URIs. Duplicate the schema in a local file';
+      throw err;
     }
     return referencedType;
   }
@@ -268,5 +286,6 @@ module.exports = {
   UnknownTypeReference,
   newContext,
   convert,
-  getConvertEnumFromGraphQLCode
+  getConvertEnumFromGraphQLCode,
+  normalizeTypeName
 };

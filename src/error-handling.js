@@ -4,6 +4,7 @@ const fs = require('fs-extra');
 // Directory-name must exist, and Directory-name must point to valid directory
 async function validatePathName (dir) {
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const files = await fs.readdir(dir);
     return files;
   } catch (err) {
@@ -28,6 +29,7 @@ async function validateJSONSyntax (file, dir) {
   }
 
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const fileContent = await fs.readFile(path.join(dir, file));
     const parsedFileContent = JSON.parse(fileContent);
     if (Array.isArray(parsedFileContent)) {
@@ -61,9 +63,18 @@ function validateTopLevelId (typeName, schema) {
   }
 }
 
+function validateTypeName (typeName, normalizedTypeName) {
+  if (!/^[_a-zA-Z][_a-zA-Z0-9]*$/.test(normalizedTypeName)) {
+    const err = new Error(`The id of ${typeName} does not convert into a valid GraphQL type name`);
+    err.subMessage = `The ID or .json file-name must match the regular expression /^[_a-zA-Z][_a-zA-Z0-9]*$/ but ${normalizedTypeName} does not`;
+    throw err;
+  }
+}
+
 // If there are definitions, each definition must have a type defined
 function validateDefinitions (definitions) {
   for (const key in definitions) {
+    // eslint-disable-next-line security/detect-object-injection
     if (!definitions[key].type) {
       const err = new Error(`Each key in definitions must have a declared type`);
       err.subLocation = `Definition for "${key}" schema`;
@@ -76,5 +87,6 @@ module.exports = {
   validatePathName,
   validateJSONSyntax,
   validateTopLevelId,
+  validateTypeName,
   validateDefinitions
 };
