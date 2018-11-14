@@ -1,6 +1,6 @@
 {
   "name": "@lifeomic/json-schema-to-graphql-types",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A utility to convert JSON Schema types into GraphQL types",
   "bin": {
     "convert-json-schemas-to-graphql-types": "bin/convert-json-schemas-to-graphql-types.js"
