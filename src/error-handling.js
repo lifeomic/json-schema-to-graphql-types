@@ -20,7 +20,18 @@ async function validatePathName (dir) {
   }
 }
 
-// Each file must have .json extension, and each file must be syntactically correct, and no file is an array of schema
+// If a file holds an array of schema, each array element must be an object-type
+function validateArrayOfSchema (jsonArray, file) {
+  jsonArray.forEach(function (schema, index) {
+    if (!(schema instanceof Object) || Array.isArray(schema)) {
+      const err = new Error('Each entry in the JSON array must be an object type');
+      err.subMessage = `Check element with index ${index} in file ${file}`;
+      throw err;
+    }
+  });
+}
+
+// Each file must have .json extension, and each file must be syntactically correct
 async function validateJSONSyntax (file, dir) {
   if (path.extname(file) !== '.json') {
     const err = new Error(`All files in directory must have .json extension`);
@@ -32,11 +43,9 @@ async function validateJSONSyntax (file, dir) {
     // eslint-disable-next-line security/detect-non-literal-fs-filename
     const fileContent = await fs.readFile(path.join(dir, file));
     const parsedFileContent = JSON.parse(fileContent);
+
     if (Array.isArray(parsedFileContent)) {
-      const err = new Error(`Each file must include only one json-schema, not an array of schema`);
-      err.subMessage = `Failed to convert file '${file}'. It should not be an array.`;
-      err.subLocation = dir.endsWith('/') ? `${dir}${file}` : `${dir}/${file}`;
-      throw err;
+      validateArrayOfSchema(parsedFileContent, file);
     }
 
     return parsedFileContent;
@@ -52,13 +61,13 @@ async function validateJSONSyntax (file, dir) {
 function validateTopLevelId (typeName, schema) {
   if (!typeName) {
     const err = new Error(`JSON-Schema must have a key 'id' or '$id' to identify the top-level schema`);
-    err.subLocation = `JSON file starting with ${JSON.stringify(schema).substring(0, 25)}...`;
+    err.subLocation = `JSON schema starting with ${JSON.stringify(schema).substring(0, 25)}...`;
     throw err;
   }
 
   if (schema.type !== 'object') {
     const err = new Error(`Top-level type must be 'object', not '${schema.type}'`);
-    err.subLocation = `JSON file starting with ${JSON.stringify(schema).substring(0, 25)}...`;
+    err.subLocation = `JSON schema starting with ${JSON.stringify(schema).substring(0, 25)}...`;
     throw err;
   }
 }
