@@ -56,25 +56,23 @@ test('throws error if files are not all .json', async function (test) {
   }
 });
 
-test('throws error if file contains an array of schema', async function (test) {
+test('throws error if .json file is an Array containing an invalid schema', async function (test) {
   const file = 'fail-1.json';
   const directory = './test/dummy-data';
   try {
     await validators.validateJSONSyntax(file, directory);
     test.fail('Should throw error');
   } catch (err) {
-    test.is(err.message, `Each file must include only one json-schema, not an array of schema`);
-    test.is(err.subMessage, `Failed to convert file '${file}'. It should not be an array.`);
-    test.is(err.subLocation, `./test/dummy-data/${file}`);
+    test.is(err.message, 'Each entry in the JSON array must be an object type');
+    test.is(err.subMessage, `Check element with index 1 in file ${file}`);
   }
 
   try {
     await validators.validateJSONSyntax(file, `${directory}/`);
     test.fail('Should throw error');
   } catch (err) {
-    test.is(err.message, `Each file must include only one json-schema, not an array of schema`);
-    test.is(err.subMessage, `Failed to convert file '${file}'. It should not be an array.`);
-    test.is(err.subLocation, `./test/dummy-data/${file}`);
+    test.is(err.message, 'Each entry in the JSON array must be an object type');
+    test.is(err.subMessage, `Check element with index 1 in file ${file}`);
   }
 });
 
