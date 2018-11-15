@@ -108,7 +108,7 @@ test('throws error if typeName is not defined', function (test) {
     test.fail('Should throw error');
   } catch (err) {
     test.is(err.message, `JSON-Schema must have a key 'id' or '$id' to identify the top-level schema`);
-    test.is(err.subLocation, `JSON file starting with ${JSON.stringify(badSchema).substring(0, 25)}...`);
+    test.is(err.subLocation, `JSON schema starting with ${JSON.stringify(badSchema).substring(0, 25)}...`);
   }
 });
 
@@ -124,7 +124,7 @@ test('throws error if top-level type is not object', function (test) {
     test.fail('Should throw error');
   } catch (err) {
     test.is(err.message, `Top-level type must be 'object', not '${badSchema.type}'`);
-    test.is(err.subLocation, `JSON file starting with ${JSON.stringify(badSchema).substring(0, 25)}...`);
+    test.is(err.subLocation, `JSON schema starting with ${JSON.stringify(badSchema).substring(0, 25)}...`);
   }
 });
 
