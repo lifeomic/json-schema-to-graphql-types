@@ -127,7 +127,7 @@ async function testAttrbuteType (test, jsonType, graphQLType, options) {
   await testConversion(test, simpleType, 'Simple', expectedType, undefined, options);
 }
 
-test.only('string attributes', async function (test) {
+test('string attributes', async function (test) {
   await testAttrbuteType(test, 'string', 'String');
 });
 
