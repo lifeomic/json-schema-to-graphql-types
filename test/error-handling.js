@@ -56,6 +56,17 @@ test('throws error if files are not all .json', async function (test) {
   }
 });
 
+test('accepts .json file containing array of schemas', async function (test) {
+  const file = 'array-of-schema.json';
+  const dir = './test/dummy-data';
+  await test.notThrows(validators.validateJSONSyntax(file, dir));
+
+  const expected = require('./dummy-data/array-of-schema.json');
+  const extracted = await validators.validateJSONSyntax(file, dir);
+  test.is(Array.isArray(extracted), true);
+  test.deepEqual(extracted, expected);
+});
+
 test('throws error if .json file is an Array containing an invalid schema', async function (test) {
   const file = 'fail-1.json';
   const directory = './test/dummy-data';
