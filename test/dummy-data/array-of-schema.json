@@ -1,0 +1,20 @@
+[
+  {
+    "$id": "schema1",
+    "type": "object",
+    "properties": {
+      "attribute": {
+        "type": "string"
+      }
+    }
+  },
+  {
+    "$id": "schema2",
+    "type": "object",
+    "properties": {
+      "attribute": {
+        "type": "string"
+      }
+    }
+  }
+]

@@ -13,7 +13,11 @@ async function convertDir (dir, asJs) {
 
   for (const file of files) {
     const schemaContents = await validators.validateJSONSyntax(file, dir); // If valid, will return parsed JSON-schema from file
-    schemas.push(schemaContents);
+    if (Array.isArray(schemaContents)) {
+      schemaContents.forEach(oneSchema => schemas.push(oneSchema));
+    } else {
+      schemas.push(schemaContents);
+    }
   }
 
   const schema = jsonSchemasToGraphqlSchema(schemas);

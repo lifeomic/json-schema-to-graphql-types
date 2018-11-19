@@ -5,7 +5,7 @@ const dummyData = require('./dummy-data/pass.json');
 
 test('successfully grabs files from directory', async function (test) {
   const files = await validators.validatePathName('./test/dummy-data');
-  const expectedFiles = ['pass.json', 'fail-1.json', 'fail-2.json'];
+  const expectedFiles = ['pass.json', 'fail-1.json', 'fail-2.json', 'array-of-schema.json'];
   test.deepEqual(files.sort(), expectedFiles.sort());
 });
 
@@ -56,25 +56,34 @@ test('throws error if files are not all .json', async function (test) {
   }
 });
 
-test('throws error if file contains an array of schema', async function (test) {
+test('accepts .json file containing array of schemas', async function (test) {
+  const file = 'array-of-schema.json';
+  const dir = './test/dummy-data';
+  await test.notThrows(validators.validateJSONSyntax(file, dir));
+
+  const expected = require('./dummy-data/array-of-schema.json');
+  const extracted = await validators.validateJSONSyntax(file, dir);
+  test.is(Array.isArray(extracted), true);
+  test.deepEqual(extracted, expected);
+});
+
+test('throws error if .json file is an Array containing an invalid schema', async function (test) {
   const file = 'fail-1.json';
   const directory = './test/dummy-data';
   try {
     await validators.validateJSONSyntax(file, directory);
     test.fail('Should throw error');
   } catch (err) {
-    test.is(err.message, `Each file must include only one json-schema, not an array of schema`);
-    test.is(err.subMessage, `Failed to convert file '${file}'. It should not be an array.`);
-    test.is(err.subLocation, `./test/dummy-data/${file}`);
+    test.is(err.message, 'Each entry in the JSON array must be an object type');
+    test.is(err.subMessage, `Check element with index 1 in file ${file}`);
   }
 
   try {
     await validators.validateJSONSyntax(file, `${directory}/`);
     test.fail('Should throw error');
   } catch (err) {
-    test.is(err.message, `Each file must include only one json-schema, not an array of schema`);
-    test.is(err.subMessage, `Failed to convert file '${file}'. It should not be an array.`);
-    test.is(err.subLocation, `./test/dummy-data/${file}`);
+    test.is(err.message, 'Each entry in the JSON array must be an object type');
+    test.is(err.subMessage, `Check element with index 1 in file ${file}`);
   }
 });
 
@@ -110,7 +119,7 @@ test('throws error if typeName is not defined', function (test) {
     test.fail('Should throw error');
   } catch (err) {
     test.is(err.message, `JSON-Schema must have a key 'id' or '$id' to identify the top-level schema`);
-    test.is(err.subLocation, `JSON file starting with ${JSON.stringify(badSchema).substring(0, 25)}...`);
+    test.is(err.subLocation, `JSON schema starting with ${JSON.stringify(badSchema).substring(0, 25)}...`);
   }
 });
 
@@ -126,7 +135,7 @@ test('throws error if top-level type is not object', function (test) {
     test.fail('Should throw error');
   } catch (err) {
     test.is(err.message, `Top-level type must be 'object', not '${badSchema.type}'`);
-    test.is(err.subLocation, `JSON file starting with ${JSON.stringify(badSchema).substring(0, 25)}...`);
+    test.is(err.subLocation, `JSON schema starting with ${JSON.stringify(badSchema).substring(0, 25)}...`);
   }
 });
 
