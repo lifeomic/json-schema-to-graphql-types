@@ -10,18 +10,18 @@ const fs = require('fs-extra');
 
 function cannonicalize (introspectionResult) {
   introspectionResult.data.__schema.directives.sort(function (a, b) {
-    return a.name < b.name;
+    return a.name.localeCompare(b.name);
   });
 
   for (const type of introspectionResult.data.__schema.types) {
     if (type.fields) {
       type.fields.sort(function (a, b) {
-        return a.name < b.name;
+        return a.name.localeCompare(b.name);
       });
     }
     if (type.inputFields) {
       type.inputFields.sort(function (a, b) {
-        return a.name < b.name;
+        return a.name.localeCompare(b.name);
       });
     }
   }
