@@ -1,4 +1,4 @@
-const { test } = require('ava');
+const test = require('ava');
 
 const validators = require('../src/error-handling');
 const dummyData = require('./dummy-data/pass.json');
@@ -59,7 +59,7 @@ test('throws error if files are not all .json', async function (test) {
 test('accepts .json file containing array of schemas', async function (test) {
   const file = 'array-of-schema.json';
   const dir = './test/dummy-data';
-  await test.notThrows(validators.validateJSONSyntax(file, dir));
+  await test.notThrowsAsync(() => validators.validateJSONSyntax(file, dir));
 
   const expected = require('./dummy-data/array-of-schema.json');
   const extracted = await validators.validateJSONSyntax(file, dir);

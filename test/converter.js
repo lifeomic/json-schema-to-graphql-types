@@ -1,4 +1,4 @@
-const {test} = require('ava');
+const test = require('ava');
 const Ajv = require('ajv');
 const {INPUT_SUFFIX, newContext, convert, UnknownTypeReference, getConvertEnumFromGraphQLCode} = require('../src/converter');
 const {
@@ -145,7 +145,7 @@ test('boolean attributes', async function (test) {
 
 test('fail on unknown types attributes', async function (test) {
   const assertion = testAttrbuteType(test, 'unknown', 'unknown', {skipValidation: true});
-  await test.throws(assertion, 'A JSON Schema attribute type unknown on attribute Simple.attribute does not have a known GraphQL mapping');
+  await test.throwsAsync(() => assertion, 'A JSON Schema attribute type unknown on attribute Simple.attribute does not have a known GraphQL mapping');
 });
 
 test('array attributes', async function (test) {
@@ -325,7 +325,7 @@ test('Unknown $ref attribute type', async function (test) {
   }`;
 
   const schema = testConversion(test, simpleType, 'Ref', expectedType);
-  await test.throws(schema, UnknownTypeReference);
+  await test.throwsAsync(() => schema, UnknownTypeReference);
 });
 
 test('Unknown $ref attribute type from external URI', async function (test) {
@@ -344,7 +344,7 @@ test('Unknown $ref attribute type from external URI', async function (test) {
   }`;
 
   const schema = testConversion(test, simpleType, 'Ref', expectedType);
-  await test.throws(schema, UnknownTypeReference);
+  await test.throwsAsync(() => schema, UnknownTypeReference);
 });
 
 test('Known $ref attribute type', async function (test) {
@@ -603,7 +603,7 @@ test('Enumeration attribute with unsupported type', async function (test) {
 
   const context = newContext();
   const assertion = testConversion(test, personType, 'Person', null, context);
-  await test.throws(assertion, 'The attribute Person.age not supported because only conversion of string based enumertions are implemented');
+  await test.throwsAsync(() => assertion, 'The attribute Person.age not supported because only conversion of string based enumertions are implemented');
 });
 
 test('Enumeration conversion function', async function (test) {
