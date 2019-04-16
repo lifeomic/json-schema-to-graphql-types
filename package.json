@@ -37,7 +37,7 @@
     "ava": "^1.2.1",
     "coveralls": "^3.0.0",
     "eslint": "^5.0.0",
-    "nyc": "^13.3.0",
+    "nyc": "^14.0.0",
     "tmp-promise": "^1.0.4"
   },
   "eslintConfig": {
