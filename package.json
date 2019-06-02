@@ -34,7 +34,7 @@
   "devDependencies": {
     "@lifeomic/eslint-plugin-node": "^1.1.1",
     "ajv": "^6.2.0",
-    "ava": "^1.2.1",
+    "ava": "^2.0.0",
     "coveralls": "^3.0.0",
     "eslint": "^5.0.0",
     "nyc": "^14.0.0",
