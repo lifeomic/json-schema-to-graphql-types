@@ -5,7 +5,21 @@ const fs = require('fs-extra');
 async function validatePathName (dir) {
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename
-    const files = await fs.readdir(dir);
+    let files = await fs.readdir(dir);
+
+    // recursively validate files within sub-folders
+    for (const file of files) {
+      const filePathWithPrefix = `${dir}/${file}`;
+
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
+      if (fs.lstatSync(filePathWithPrefix).isDirectory()) {
+        let newFilesInDirectory = await validatePathName(`${filePathWithPrefix}`);
+        newFilesInDirectory = newFilesInDirectory.map((filename) => `${file}/${filename}`);
+        files.splice(files.indexOf(file), 1);
+        files = files.concat(newFilesInDirectory);
+      }
+    }
+
     return files;
   } catch (err) {
     if (err.name.startsWith('TypeError')) {

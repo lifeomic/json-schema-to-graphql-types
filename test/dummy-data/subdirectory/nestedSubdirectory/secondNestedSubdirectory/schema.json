@@ -1,0 +1,9 @@
+{
+  "$id": "schema5",
+  "type": "object",
+  "properties": {
+    "attribute": {
+      "type": "string"
+    }
+  }
+}
