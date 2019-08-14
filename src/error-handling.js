@@ -4,19 +4,18 @@ const fs = require('fs-extra');
 // Directory-name must exist, and Directory-name must point to valid directory
 async function validatePathName (dir) {
   try {
+    const files = [];
     // eslint-disable-next-line security/detect-non-literal-fs-filename
-    let files = await fs.readdir(dir);
+    const directoryContents = await fs.readdir(dir);
 
-    // recursively validate files within sub-folders
-    for (const file of files) {
+    for (const file of directoryContents) {
       const filePathWithPrefix = `${dir}/${file}`;
-
       // eslint-disable-next-line security/detect-non-literal-fs-filename
       if (fs.lstatSync(filePathWithPrefix).isDirectory()) {
-        let newFilesInDirectory = await validatePathName(`${filePathWithPrefix}`);
-        newFilesInDirectory = newFilesInDirectory.map((filename) => `${file}/${filename}`);
-        files.splice(files.indexOf(file), 1);
-        files = files.concat(newFilesInDirectory);
+        const newFilesInDirectory = await validatePathName(`${filePathWithPrefix}`);
+        files.push(...newFilesInDirectory.map((filename) => `${file}/${filename}`));
+      } else {
+        files.push(file);
       }
     }
 
