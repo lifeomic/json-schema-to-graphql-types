@@ -5,7 +5,15 @@ const dummyData = require('./dummy-data/pass.json');
 
 test('successfully grabs files from directory', async function (test) {
   const files = await validators.validatePathName('./test/dummy-data');
-  const expectedFiles = ['pass.json', 'fail-1.json', 'fail-2.json', 'array-of-schema.json'];
+  const expectedFiles = [
+    'pass.json',
+    'fail-1.json',
+    'fail-2.json',
+    'array-of-schema.json',
+    'subdirectory/schema.json',
+    'subdirectory/nestedSubdirectory/schema.json',
+    'subdirectory/nestedSubdirectory/secondNestedSubdirectory/schema.json'
+  ];
   test.deepEqual(files.sort(), expectedFiles.sort());
 });
 

@@ -4,8 +4,21 @@ const fs = require('fs-extra');
 // Directory-name must exist, and Directory-name must point to valid directory
 async function validatePathName (dir) {
   try {
+    const files = [];
     // eslint-disable-next-line security/detect-non-literal-fs-filename
-    const files = await fs.readdir(dir);
+    const directoryContents = await fs.readdir(dir);
+
+    for (const file of directoryContents) {
+      const filePathWithPrefix = `${dir}/${file}`;
+      // eslint-disable-next-line security/detect-non-literal-fs-filename
+      if (fs.lstatSync(filePathWithPrefix).isDirectory()) {
+        const newFilesInDirectory = await validatePathName(`${filePathWithPrefix}`);
+        files.push(...newFilesInDirectory.map((filename) => `${file}/${filename}`));
+      } else {
+        files.push(file);
+      }
+    }
+
     return files;
   } catch (err) {
     if (err.name.startsWith('TypeError')) {
