@@ -29,7 +29,7 @@
     "graphql": "^14.0.2",
     "lodash": "^4.17.5",
     "uppercamelcase": "^3.0.0",
-    "yargs": "^13.2.1"
+    "yargs": "^14.0.0"
   },
   "devDependencies": {
     "@lifeomic/eslint-plugin-node": "^1.1.1",
