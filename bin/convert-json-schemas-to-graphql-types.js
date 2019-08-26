@@ -20,7 +20,7 @@ async function convertDir (dir, asJs, excludeMutations) {
     }
   }
 
-  const schema = jsonSchemasToGraphqlSchema(schemas, excludeMutations ? false : true);
+  const schema = jsonSchemasToGraphqlSchema(schemas, !excludeMutations);
   const printed = printSchema(schema);
 
   // Strip out the Query type because it's not needed
