@@ -38,7 +38,7 @@ async function run () {
   const argv = yargs
     .boolean('asJs')
     .boolean('excludeMutations')
-    .usage('Usage: $0 [directory] (--asJs) (--excludeMutations)')
+    .usage('Usage: $0 <directory> [options]')
     .argv;
   const dir = argv._[0];
   await convertDir(dir, argv.asJs, argv.excludeMutations);
