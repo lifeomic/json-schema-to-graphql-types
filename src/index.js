@@ -33,7 +33,7 @@ function convertSchemas (context, schemas) {
   }
 }
 
-function jsonSchemasToGraphqlSchema (schemas, withMutations) {
+function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
   const context = newContext();
 
   convertSchemas(context, schemas);
