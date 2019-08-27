@@ -76,7 +76,7 @@ function buildEnumType (context, attributeName, enumValues) {
   const enumType = new GraphQLEnumType({
     name: enumName,
     values: mapValues(graphqlToJsonMap, function (value) {
-      return {value};
+      return { value };
     })
   });
 
@@ -100,9 +100,9 @@ function getObjectFields (context, schema, typeName, buildingInputType) {
       const type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
 
       const modifiedType = includes(schema.required, attributeName) ? GraphQLNonNull(type) : type;
-      return {type: modifiedType};
+      return { type: modifiedType };
     }),
-    {type: DROP_ATTRIBUTE_MARKER}
+    { type: DROP_ATTRIBUTE_MARKER }
   );
 }
 
@@ -207,7 +207,7 @@ function buildRootType (context, typeName, schema) {
   const output = mapType(context, schema, typeName);
   const input = mapType(context, schema, typeName, true);
 
-  return {input, output};
+  return { input, output };
 }
 
 function buildRootUnionType (context, typeName, schema) {
@@ -215,7 +215,7 @@ function buildRootUnionType (context, typeName, schema) {
 
   // There are no input union types in GraphQL
   // https://github.com/facebook/graphql/issues/488
-  return {output, input: undefined};
+  return { output, input: undefined };
 }
 
 function convert (context, schema) {
@@ -223,14 +223,14 @@ function convert (context, schema) {
   validators.validateTopLevelId(typeName, schema);
 
   const typeBuilder = schema.switch ? buildRootUnionType : buildRootType;
-  const {input, output} = typeBuilder(context, typeName, schema);
+  const { input, output } = typeBuilder(context, typeName, schema);
 
   context.types.set(typeName, output);
   if (input) {
     context.inputs.set(typeName, input);
   }
 
-  return {output, input};
+  return { output, input };
 }
 
 function newContext () {
@@ -255,10 +255,10 @@ function getConvertEnumFromGraphQLCode (context, attributePath) {
   const cases = map(valueMap, function (jsonValue, graphQlValue) {
     return {
       type: 'SwitchCase',
-      test: {type: 'Literal', value: graphQlValue},
+      test: { type: 'Literal', value: graphQlValue },
       consequent: [{
         type: 'ReturnStatement',
-        argument: {type: 'Literal', value: jsonValue}
+        argument: { type: 'Literal', value: jsonValue }
       }]
     };
   });

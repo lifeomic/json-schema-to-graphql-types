@@ -1,6 +1,6 @@
 const test = require('ava');
 const Ajv = require('ajv');
-const {INPUT_SUFFIX, newContext, convert, UnknownTypeReference, getConvertEnumFromGraphQLCode} = require('../src/converter');
+const { INPUT_SUFFIX, newContext, convert, UnknownTypeReference, getConvertEnumFromGraphQLCode } = require('../src/converter');
 const {
   parse, execute, buildSchema, printSchema,
   GraphQLSchema, GraphQLObjectType, introspectionQuery
@@ -40,13 +40,13 @@ function makeSchemaForType (output, input) {
     name: 'Mutation',
     fields: {
       create: {
-        args: {input: {type: input}},
+        args: { input: { type: input } },
         type: output
       }
     }
   }) : undefined;
 
-  return new GraphQLSchema({query: queryType, mutation: mutationType});
+  return new GraphQLSchema({ query: queryType, mutation: mutationType });
 }
 
 async function compareSchemas (test, schema, expectedSchema) {
@@ -65,12 +65,12 @@ async function compareSchemas (test, schema, expectedSchema) {
 
 async function testConversion (test, jsonSchema, expectedTypeName, expectedType, context, options = {}) {
   if (!options.skipValidation) {
-    const ajv = new Ajv({schemaId: 'auto'});
+    const ajv = new Ajv({ schemaId: 'auto' });
     ajv.addSchema(jsonSchema);
   }
 
   context = context || newContext();
-  const {output, input} = convert(context, jsonSchema);
+  const { output, input } = convert(context, jsonSchema);
   const schema = makeSchemaForType(output, options.skipInput ? undefined : input);
 
   const expectedSchema = buildSchema(`
@@ -111,7 +111,7 @@ async function testAttrbuteType (test, jsonType, graphQLType, options) {
     id: 'Simple',
     type: 'object',
     properties: {
-      attribute: {type: jsonType}
+      attribute: { type: jsonType }
     }
   };
 
@@ -144,7 +144,7 @@ test('boolean attributes', async function (test) {
 });
 
 test('fail on unknown types attributes', async function (test) {
-  const assertion = testAttrbuteType(test, 'unknown', 'unknown', {skipValidation: true});
+  const assertion = testAttrbuteType(test, 'unknown', 'unknown', { skipValidation: true });
   await test.throwsAsync(() => assertion, 'A JSON Schema attribute type unknown on attribute Simple.attribute does not have a known GraphQL mapping');
 });
 
@@ -619,7 +619,7 @@ test('Enumeration conversion function', async function (test) {
   };
 
   const context = newContext();
-  const {output, input} = convert(context, personType);
+  const { output, input } = convert(context, personType);
   // Make a schema an print it just to force the field 'thunks'
   // to be resolved
   const schema = makeSchemaForType(output, input);
