@@ -4,7 +4,7 @@ const { printSchema } = require('graphql');
 const { jsonSchemasToGraphqlSchema } = require('../src/index');
 const validators = require('../src/error-handling');
 
-async function convertDir (dir, asJs) {
+async function convertDir (dir, asJs, excludeMutations) {
   // It is intentional to allow the user to specify the directory to be read.
   // The directory comes from the command line argument
   // eslint-disable-next-line security/detect-non-literal-fs-filename
@@ -20,7 +20,7 @@ async function convertDir (dir, asJs) {
     }
   }
 
-  const schema = jsonSchemasToGraphqlSchema(schemas);
+  const schema = jsonSchemasToGraphqlSchema(schemas, !excludeMutations);
   const printed = printSchema(schema);
 
   // Strip out the Query type because it's not needed
@@ -37,9 +37,11 @@ async function convertDir (dir, asJs) {
 async function run () {
   const argv = yargs
     .boolean('asJs')
+    .boolean('excludeMutations')
+    .usage('Usage: $0 <directory> [options]')
     .argv;
   const dir = argv._[0];
-  await convertDir(dir, argv.asJs);
+  await convertDir(dir, argv.asJs, argv.excludeMutations);
 }
 
 run()
