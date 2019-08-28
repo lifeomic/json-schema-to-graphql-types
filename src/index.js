@@ -48,7 +48,7 @@ function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
         // protected and none of the attributes will be used as functions
         // just a map of attribute to values.
         // eslint-disable-next-line security/detect-object-injection
-        result[name] = {type};
+        result[name] = { type };
       }
       return result;
     }
@@ -69,14 +69,14 @@ function jsonSchemasToGraphqlSchema (schemas, withMutations = true) {
         // eslint-disable-next-line security/detect-object-injection
         result[normalizedName] = {
           type: GraphQLString,
-          args: {input: {type}}
+          args: { input: { type } }
         };
       }
 
       return result;
     }
   }) : null;
-  const schema = new GraphQLSchema({query: queryType, mutation: mutationType});
+  const schema = new GraphQLSchema({ query: queryType, mutation: mutationType });
   return schema;
 }
 module.exports = {
