@@ -112,13 +112,16 @@ async function testAttrbuteType (test, jsonType, graphQLType, options) {
     type: 'object',
     properties: {
       attribute: { type: jsonType }
-    }
+    },
+    description: 'Description'
   };
 
   const expectedType = `
+  "Description"
   type Simple {
     attribute: ${graphQLType}
   }
+  "Description"
   input Simple${INPUT_SUFFIX} {
     attribute: ${graphQLType}
   }

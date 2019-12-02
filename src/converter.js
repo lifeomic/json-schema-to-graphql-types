@@ -100,7 +100,7 @@ function getObjectFields (context, schema, typeName, buildingInputType) {
       const type = mapType(context, attributeDefinition, qualifiedAttributeName, buildingInputType);
 
       const modifiedType = includes(schema.required, attributeName) ? GraphQLNonNull(type) : type;
-      return { type: modifiedType };
+      return { type: modifiedType, description: attributeDefinition.description };
     }),
     { type: DROP_ATTRIBUTE_MARKER }
   );
@@ -124,11 +124,13 @@ function mapType (context, attributeDefinition, attributeName, buildingInputType
     return buildingInputType
       ? new GraphQLInputObjectType({
         name,
-        fields: () => getObjectFields(context, attributeDefinition, attributeName, buildingInputType)
+        fields: () => getObjectFields(context, attributeDefinition, attributeName, buildingInputType),
+        description: attributeDefinition.description
       })
       : new GraphQLObjectType({
         name,
-        fields: () => getObjectFields(context, attributeDefinition, attributeName, buildingInputType)
+        fields: () => getObjectFields(context, attributeDefinition, attributeName, buildingInputType),
+        description: attributeDefinition.description
       });
     // return objectFromSchema(context, attributeDefinition, attributeName, buildingInputType);
   }
