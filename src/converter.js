@@ -44,7 +44,21 @@ function getReferenceName (referenceName, buildingInputType) {
 }
 
 function mapBasicAttributeType (type, attributeName) {
-  switch (type) {
+  let processedType;
+  if (type instanceof Array) {
+    if (type.length === 2) {
+      if (type.includes('null')) {
+        processedType = type.find(element => element !== 'null');
+      } else {
+        throw new Error('JSON Schema type attribute arrays should only be used to specify nullable type "[null, string]"');
+      }
+    } else {
+      throw new Error(`JSON Schema attribute type array can only have a max of 2 types/elements`);
+    }
+  } else {
+    processedType = type;
+  }
+  switch (processedType) {
     case 'string': return GraphQLString;
     case 'integer': return GraphQLInt;
     case 'number': return GraphQLFloat;
