@@ -146,9 +146,83 @@ test('boolean attributes', async function (test) {
   await testAttrbuteType(test, 'boolean', 'Boolean');
 });
 
+test('null | string attributes', async function (test) {
+  await testAttrbuteType(test, ['null', 'string'], 'String');
+});
+
+test('null | integer attributes', async function (test) {
+  await testAttrbuteType(test, ['null', 'integer'], 'Int');
+});
+
+test('null | float attributes', async function (test) {
+  await testAttrbuteType(test, ['null', 'number'], 'Float');
+});
+
+test('null | boolean attributes', async function (test) {
+  await testAttrbuteType(test, ['null', 'boolean'], 'Boolean');
+});
+
 test('fail on unknown types attributes', async function (test) {
   const assertion = testAttrbuteType(test, 'unknown', 'unknown', { skipValidation: true });
   await test.throwsAsync(() => assertion, 'A JSON Schema attribute type unknown on attribute Simple.attribute does not have a known GraphQL mapping');
+});
+
+test('fail if array includes does not include "null"', async function (test) {
+  const assertion = testAttrbuteType(test, ['int', 'string'], 'String', { skipValidation: true });
+  await test.throwsAsync(() => assertion, 'JSON Schema type attribute arrays should only be used to specify nullable type "[null, string]"');
+});
+
+test('fail with more than 2 elements in type array', async function (test) {
+  const assertion = testAttrbuteType(test, ['null', 'string', 'int'], 'int', { skipValidation: true });
+  await test.throwsAsync(() => assertion, 'JSON Schema attribute type array can only have a max of 2 types/elements');
+});
+
+test('process attributes within array - variation --> String', async function (test) {
+  const optionalTypes = {
+    id: 'OptionalSchema',
+    type: 'object',
+    properties: {
+      attribute: {
+        type: ['null', 'string']
+      }
+    }
+  };
+
+  const expectedType = `
+  type OptionalSchema {
+    attribute: String
+  }
+
+  input OptionalSchema${INPUT_SUFFIX} {
+    attribute: String 
+  }
+  `;
+
+  await testConversion(test, optionalTypes, 'OptionalSchema', expectedType);
+});
+
+test('process attributes within array - variation --> Float', async function (test) {
+  const optionalTypes = {
+    id: 'OptionalSchema',
+    type: 'object',
+    properties: {
+      attribute: {
+        type: ['null', 'number']
+      }
+    }
+  };
+
+  const expectedType = `
+  type OptionalSchema {
+    attribute: Float
+  }
+
+  input OptionalSchema${INPUT_SUFFIX} {
+    attribute: Float
+  }
+  `;
+
+  await testConversion(test, optionalTypes, 'OptionalSchema', expectedType);
 });
 
 test('array attributes', async function (test) {
